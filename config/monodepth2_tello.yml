@@ -1,7 +1,7 @@
 dataset:
-    root_dir: '/home/jiatian/dataset/kitti/'
-    image_height: 128
-    image_width: 416
+    root_dir: '/home/jiatian/dataset/tello/'
+    image_height: 240
+    image_width: 320
     min_depth: 0.1
     max_depth: 100.
     preprocess: True
@@ -19,8 +19,8 @@ model:
     batch_norm_epsilon: 1e-5
     pose_scale: 1e-2
     auto_mask: True
-    continue_ckpt: ''
-    #torch_res18_ckpt: ''
+    continue_ckpt: '/home/jiatian/project/tf-monodepth2/saved_model/tello_0121/model-177522'
     torch_res18_ckpt: ''
+    #torch_res18_ckpt: '/home/jiatian/project/tf-monodepth2/res_model_extractor/resnet18.npy'
     summary_freq: 200
     pose_type: 'seperate' # seperate or shared

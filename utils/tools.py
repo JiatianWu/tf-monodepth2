@@ -4,7 +4,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 from matplotlib import cm
 
 def dict_update(d, u):

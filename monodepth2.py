@@ -9,6 +9,8 @@ import logging
 from utils.std_capturing import *
 from model.monodepth2_learner import MonoDepth2Learner
 
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
 def _cli_train(config, output_dir, args):
     with open(os.path.join(output_dir, 'config.yml'), 'w') as f:
         yaml.dump(config, f, default_flow_style=False)

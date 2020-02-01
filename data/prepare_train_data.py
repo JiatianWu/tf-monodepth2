@@ -7,13 +7,24 @@ from joblib import Parallel, delayed
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset_dir", type=str, required=True, help="where the dataset is stored")
-parser.add_argument("--dataset_name", type=str, required=True, choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes"])
-parser.add_argument("--dump_root", type=str, required=True, help="Where to dump the data")
-parser.add_argument("--seq_length", type=int, required=True, help="Length of each training sequence")
-parser.add_argument("--img_height", type=int, default=128, help="image height")
-parser.add_argument("--img_width", type=int, default=416, help="image width")
-parser.add_argument("--num_threads", type=int, default=4, help="number of threads to use")
+
+dataset_name = 'tum'
+
+parser.add_argument("--seq_length", type=int, default=3, help="Length of each training sequence")
+parser.add_argument("--img_height", type=int, default=240, help="image height")
+parser.add_argument("--img_width", type=int, default=320, help="image width")
+parser.add_argument("--num_threads", type=int, default=16, help="number of threads to use")
+
+if dataset_name == 'tum': 
+    parser.add_argument("--dataset_dir", type=str, default='/home/jiatian/dataset/all_sequences/', help="where the dataset is stored")
+    parser.add_argument("--dataset_name", type=str, default='tum', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello"])
+    parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/tum/', help="Where to dump the data")
+
+if dataset_name == 'tello': 
+    parser.add_argument("--dataset_dir", type=str, default='/home/jiatian/dataset/tello_raw/', help="where the dataset is stored")
+    parser.add_argument("--dataset_name", type=str, default='tello', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello"])
+    parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/tello/', help="Where to dump the data")
+
 args = parser.parse_args()
 
 def concat_image_seq(seq):
@@ -76,7 +87,7 @@ def main():
                                        split='stereo',
                                        img_height=args.img_height,
                                        img_width=args.img_width,
-                                       seq_length=args.seq_length)        
+                                       seq_length=args.seq_length)
 
     if args.dataset_name == 'cityscapes':
         from cityscapes.cityscapes_loader import cityscapes_loader
@@ -85,8 +96,26 @@ def main():
                                         img_width=args.img_width,
                                         seq_length=args.seq_length)
 
-    Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+    if args.dataset_name == 'tum':
+        from tum.tum_loader import tum_loader
+        id = 0
+        data_loader = tum_loader(args.dataset_dir,
+                            split='sequence',
+                            sequence_id=id,
+                            img_height=args.img_height,
+                            img_width=args.img_width,
+                            seq_length=args.seq_length)
+        # Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
 
+    if args.dataset_name == 'tello':
+        from tello.tello_loader import tello_loader
+        data_loader = tello_loader(args.dataset_dir,
+                                   split='pics',
+                                   img_height=args.img_height,
+                                   img_width=args.img_width,
+                                   seq_length=args.seq_length)
+
+    # import pdb; pdb.set_trace()
     # Split into train/val
     np.random.seed(8964)
     subfolders = os.listdir(args.dump_root)

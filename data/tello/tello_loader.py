@@ -4,11 +4,10 @@ from glob import glob
 import os
 import scipy.misc
 
-class tum_loader(object):
+class tello_loader(object):
     def __init__(self, 
                  dataset_dir,
                  split,
-                 sequence_id,
                  img_height=256,
                  img_width=256,
                  seq_length=5):
@@ -16,15 +15,16 @@ class tum_loader(object):
         self.img_height = img_height
         self.img_width = img_width
         self.seq_length = seq_length
-        self.date_list = ['sequence_' + str(sequence_id).zfill(2)]
+        self.date_list = ['pics_' + str(id).zfill(2) for id in range(0, 1)]
         self.collect_train_frames()
         
     def collect_train_frames(self):
         all_frames = []
         for date in self.date_list:
-            img_dir = self.dataset_dir + date + '/image'
+            img_dir = self.dataset_dir + date
             N = len(glob(img_dir + '/*.jpg'))
             for n in range(N):
+                n += 144
                 frame_id = str(n).zfill(6)
                 all_frames.append(date + ' ' + frame_id)
 
@@ -78,12 +78,12 @@ class tum_loader(object):
         return example
 
     def load_image_raw(self, drive, frame_id):
-        img_file = self.dataset_dir + drive + '/image/' + frame_id + '.jpg'
+        img_file = self.dataset_dir + drive + '/' + frame_id + '.jpg'
         img = scipy.misc.imread(img_file)
         return img
 
     def load_intrinsics_raw(self, drive, frame_id):
-        calib_file = self.dataset_dir + drive + '/rect_camera.txt'
+        calib_file = self.dataset_dir + 'rect_camera.txt'
 
         filedata = self.read_raw_calib_file(calib_file)
         P_rect = np.reshape(filedata, (3, 3))

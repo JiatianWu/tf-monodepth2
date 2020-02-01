@@ -361,8 +361,8 @@ class MonoDepth2Learner(object):
 
             if self.continue_ckpt != '':
                 print("Resume training from previous checkpoint: %s" % self.continue_ckpt)
-                ckpt = tf.train.latest_checkpoint('{}/{}'.format(self.root_dir,self.continue_ckpt))
-                self.saver.restore(sess, ckpt)
+                # ckpt = tf.train.latest_checkpoint('{}/{}'.format(self.root_dir,self.continue_ckpt))
+                self.saver.restore(sess, self.continue_ckpt)
 
             elif self.torch_res18_ckpt != '':
                  sess.run(assign_ops)
