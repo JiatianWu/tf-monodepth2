@@ -16,19 +16,19 @@ class nyu_loader(object):
         self.img_height = img_height
         self.img_width = img_width
         self.seq_length = seq_length
-        self.date_list = [os.listdir(self.dataset_dir)[sequence_id]]
+        self.date_list = [sorted(os.listdir(self.dataset_dir))[sequence_id]]
         self.collect_train_frames()
         
     def collect_train_frames(self):
         all_frames = []
         for date in self.date_list:
-            print('Processing' + date)
+            print('Processing  ' + date)
             img_dir = self.dataset_dir + date
             N = len(glob(img_dir + '/*.ppm'))
 
             frame_list = sorted(os.listdir(img_dir))
             for frame in frame_list:
-                if '.ppm' in frame:
+                if 'r-' in frame and '.ppm' in frame:
                     frame_id = frame
                     all_frames.append(date + ' ' + frame_id)
 
@@ -82,7 +82,7 @@ class nyu_loader(object):
         return example
 
     def load_image_raw(self, drive, frame_id):
-        img_file = self.dataset_dir + drive + '/' + frame_id + '.ppm'
+        img_file = self.dataset_dir + drive + '/' + frame_id
         img = scipy.misc.imread(img_file)
         return img
 

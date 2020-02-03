@@ -16,7 +16,7 @@ parser.add_argument("--img_width", type=int, default=320, help="image width")
 parser.add_argument("--num_threads", type=int, default=16, help="number of threads to use")
 
 if dataset_name == 'nyu': 
-    parser.add_argument("--dataset_dir", type=str, default='/freezer/nyudepthV2_raw', help="where the dataset is stored")
+    parser.add_argument("--dataset_dir", type=str, default='/freezer/nyudepthV2_raw/', help="where the dataset is stored")
     parser.add_argument("--dataset_name", type=str, default='nyu', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello", "nyu"])
     parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/nyu/', help="Where to dump the data")
 
@@ -122,16 +122,20 @@ def main():
 
     if args.dataset_name == 'nyu':
         from nyu.nyu_loader import nyu_loader
-        for id in range(583):
-            data_loader = nyu_loader(args.dataset_dir,
-                                split='sequence',
-                                sequence_id=id,
-                                img_height=args.img_height,
-                                img_width=args.img_width,
-                                seq_length=args.seq_length)
-            Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+        sequences_number = len(os.listdir(self.dataset_dir))
+        for id in range(sequences_number):
+            try:
+                data_loader = nyu_loader(args.dataset_dir,
+                                    split='sequence',
+                                    sequence_id=id,
+                                    img_height=args.img_height,
+                                    img_width=args.img_width,
+                                    seq_length=args.seq_length)
+                Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+            except:
+                print("ERROR in " + str(id))
 
-    # import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
     # Split into train/val
     np.random.seed(8964)
     subfolders = os.listdir(args.dump_root)
@@ -141,9 +145,12 @@ def main():
                 if not os.path.isdir(args.dump_root + '/%s' % s):
                     continue
                 imfiles = glob(os.path.join(args.dump_root, s, '*.jpg'))
-                frame_ids = [os.path.basename(fi).split('.')[0] for fi in imfiles]
+                if args.dataset_name == 'nyu':
+                    frame_ids = [os.path.basename(fi)[:-4] for fi in imfiles]
+                else:
+                    frame_ids = [os.path.basename(fi).split('.')[0] for fi in imfiles]
                 for frame in frame_ids:
-                    if np.random.random() < 0.1:
+                    if np.random.random() < 0:
                         vf.write('%s %s\n' % (s, frame))
                     else:
                         tf.write('%s %s\n' % (s, frame))
