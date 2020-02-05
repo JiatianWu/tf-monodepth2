@@ -31,7 +31,7 @@ class SaveModel(object):
         return image
 
     def generate_datasets(self):
-        num_calibration_steps = 10
+        num_calibration_steps = 600
         for _ in range(num_calibration_steps):
             input = np.random.random_sample((1, self.img_height, self.img_width, 3))
             yield [np.array(input, dtype='float32')]

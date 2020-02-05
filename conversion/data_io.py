@@ -44,10 +44,10 @@ def disp_to_depth_np(disp, min_depth, max_depth):
     depth = 1.0 / scaled_disp
     return depth
 
-def get_depth(results, tgt_image_np):
+def get_depth(results, tgt_image_np, min_depth, max_depth):
     disp_resized_np = np.squeeze(results['disp'])
 
-    disp_resized_vis = disp_to_depth_np(disp_resized_np, 0.1, 100.0)
+    disp_resized_vis = disp_to_depth_np(disp_resized_np, min_depth, max_depth)
     vmax = np.percentile(disp_resized_vis, 95)
     vmin = disp_resized_np.min()
     normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)

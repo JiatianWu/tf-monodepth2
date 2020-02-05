@@ -19,7 +19,7 @@ if __name__ == "__main__":
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.save_savedModel(ckpt_dir='saved_model_tum/0129/model-85718',
+        app.save_savedModel(ckpt_dir='saved_model_tum/quantize_friendly/model-3257210',
                             savedModel_dir ='tmp/',
                             save_tflite=True)
         # app.save_pb(ckpt_dir='saved_model/tum_0121/model-3342926',

@@ -1,7 +1,7 @@
 dataset:
     root_dir: '/home/jiatian/dataset/tum/'
-    image_height: 240
-    image_width: 320
+    image_height: 240 #192
+    image_width: 320 #256
     min_depth: 0.1
     max_depth: 100.
     preprocess: True
