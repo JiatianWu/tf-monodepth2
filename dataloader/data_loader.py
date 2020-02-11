@@ -33,6 +33,7 @@ class DataLoader(object):
         img_reader = tf.WholeFileReader()
         _, image_contents = img_reader.read(image_paths_queue)
         image_seq = tf.image.decode_jpeg(image_contents)
+        # image_seq = tf.image.grayscale_to_rgb(image_seq)
         # [H, W, 3] and [H, W, 3 * num_source]
         tgt_image, src_image_stack = \
             self.unpack_image_sequence(

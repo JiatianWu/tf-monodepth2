@@ -135,27 +135,28 @@ class SaveModel(object):
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         num_frames = len(all_frames)
-        with tf.Session(config=config) as sess:
-            self.saver.restore(sess, ckpt_dir)
+        self.sess = tf.Session(config=config)
+        self.saver.restore(self.sess, ckpt_dir)
+        # with tf.Session(config=config) as self.sess:
+        #     self.saver.restore(self.sess, ckpt_dir)
 
-            for step in range(num_frames):
+        for step in range(num_frames):
 
-                fetches = {
-                    'depth': self.pred_depth,
-                    'disp': self.pred_disp
-                }
+            fetches = {
+                'disp': self.pred_disp
+            }
 
-                try:
-                    tgt_image_np = get_image(all_frames, step)
-                except:
-                    continue
+            try:
+                tgt_image_np = get_image(all_frames, step, resize_ratio=1.0, crop=True)
+            except:
+                continue
 
-                start = time.time()
-                results = sess.run(fetches,feed_dict={self.tgt_image_uint8:tgt_image_np})
-                print('Inference takes: ', time.time() - start)
+            start = time.time()
+            results = self.sess.run(fetches,feed_dict={self.tgt_image_uint8:tgt_image_np})
+            print('Inference takes: ', time.time() - start)
 
-                toshow_image = get_depth(results=results, tgt_image_np=tgt_image_np)
-                print(toshow_image.shape)
+            toshow_image = get_image_depth(results=results, tgt_image_np=tgt_image_np,
+                                            min_depth=self.min_depth, max_depth=self.max_depth)
 
-                toshow_image = cv2.resize(toshow_image, (toshow_image.shape[1]*3, toshow_image.shape[0]*3))
-                cv2.imwrite(output_dir + '/' + str(step).zfill(6) + '.jpg', toshow_image)
+            toshow_image = cv2.resize(toshow_image, (toshow_image.shape[1]*3, toshow_image.shape[0]*3))
+            cv2.imwrite(output_dir + '/' + str(step).zfill(6) + '.jpg', toshow_image)

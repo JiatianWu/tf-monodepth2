@@ -26,16 +26,33 @@ def read_datasets(input_dir):
 
     return all_frames
 
-def get_image(all_frames, id):
-    width = 320
+def yield_data_from_datasets(input_dir):
+    N = len(glob(input_dir + '/*.jpg'))
+    image = None
+    for n in range(1, N+1, 50):
+        frame_id = str(n).zfill(6)
+        image_path = input_dir + '/' + frame_id + '.jpg'
+
+        yield cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
+
+def get_image(all_frames, id, resize_ratio, crop=False, width=320):
     image_path = all_frames[id]
     image = cv2.imread(image_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    tgt_image_np = image[:, width: width*2, :]
+    if crop:
+        image = image[: , width: width*2, :]
+    tgt_image_np = cv2.resize(image, dsize=(int(image.shape[1]*resize_ratio), int(image.shape[0]*resize_ratio)))
     tgt_image_np = np.expand_dims(tgt_image_np, axis=0)
 
     return tgt_image_np
+
+def process_image_eval_tflite(image, width, height, resize_ratio):
+    image = cv2.resize(image, dsize=(int(image.shape[1]*resize_ratio), int(image.shape[0]*resize_ratio)))
+
+    tgt_image_np = image[: height, : width, :]
+    tgt_depth_np = image[height :, : width, :]
+
+    return tgt_image_np, tgt_depth_np
 
 def disp_to_depth_np(disp, min_depth, max_depth):
     min_disp = 1. / max_depth
@@ -44,23 +61,48 @@ def disp_to_depth_np(disp, min_depth, max_depth):
     depth = 1.0 / scaled_disp
     return depth
 
-def get_depth(results, tgt_image_np, min_depth, max_depth):
+def get_image_depth(results, tgt_image_np, min_depth, max_depth):
     disp_resized_np = np.squeeze(results['disp'])
 
-    disp_resized_vis = disp_to_depth_np(disp_resized_np, min_depth, max_depth)
+    colormapped_depth = vis_disparity(disp_resized_np, min_depth, max_depth)
+    tgt_image_np = vis_image(tgt_image_np)
+    toshow_image = np.vstack((tgt_image_np, colormapped_depth))
+
+    return toshow_image
+
+def vis_image(image):
+    if image.ndim > 3:
+        image = np.squeeze(image)
+
+    tgt_image_np = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    return tgt_image_np
+
+def vis_disparity(disp, min_depth, max_depth):
+    disp_resized_vis = disp_to_depth_np(disp, min_depth, max_depth)
     vmax = np.percentile(disp_resized_vis, 95)
-    vmin = disp_resized_np.min()
+    vmin = disp.min()
     normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     mapper = mpl.cm.ScalarMappable(norm=normalizer, cmap='viridis')
 
     colormapped_im = (mapper.to_rgba(disp_resized_vis)[:, :, :3][:,:,::-1] * 255).astype(np.uint8)
 
-    # disp_rgb_int = ((disp_resized_np - vmin) / (vmax - vmin) * 255.).astype(np.uint8)
-    # disp_rgb = cv2.cvtColor( disp_rgb_int, cv2.COLOR_GRAY2RGB)
+    return colormapped_im
 
-    tgt_image_np = np.squeeze(tgt_image_np)
-    tgt_image_np = cv2.cvtColor(tgt_image_np, cv2.COLOR_BGR2RGB)
+def vis_depth(depth_map, cmap):
+    d_min = np.min(depth_map)
+    d_max = np.max(depth_map)
+    depth_relative = (depth_map - d_min) / (d_max - d_min)
 
-    toshow_image = np.vstack((tgt_image_np, colormapped_im))
+    return 255 * cmap(depth_relative)[:,:,:3]
 
-    return toshow_image
+def merge_image(img_a, img_b, img_c=None, img_d=None):
+    res_image = np.vstack((img_a, img_b))
+
+    if img_c is not None:
+        res_image = np.vstack((res_image, img_c))
+
+    if img_d is not None:
+        res_image = np.vstack((res_image, img_d))
+
+    return res_image
