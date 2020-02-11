@@ -24,7 +24,8 @@ class Net(object):
             with slim.arg_scope([slim.conv2d],
                                 normalizer_fn=None,
                                 weights_initializer=variance_scaling_initializer(factor=0.01, mode='FAN_OUT'),
-                                activation_fn=tf.nn.elu,
+                                # activation_fn=tf.nn.elu,
+                                activation_fn=tf.nn.relu,
                                 outputs_collections=end_points_collection):
                 filters = [16, 32, 64, 128, 256]
                 # disp 5
@@ -62,6 +63,49 @@ class Net(object):
                 disp1 = self._conv_reflect(upconv1, 3, 1, 1, 'disp1', activation_fn=tf.nn.sigmoid)
 
                 return [disp1, disp2, disp3, disp4]
+
+    def build_disp_net_eval(self, res18_tc, skips):
+        print('Building Depth Decoder Model')
+        with tf.variable_scope('depth_decoder', reuse=tf.AUTO_REUSE) as scope:
+            end_points_collection = scope.original_name_scope + '_end_points'
+            with slim.arg_scope([slim.conv2d],
+                                normalizer_fn=None,
+                                weights_initializer=variance_scaling_initializer(factor=0.01, mode='FAN_OUT'),
+                                activation_fn=tf.nn.relu,
+                                outputs_collections=end_points_collection):
+                filters = [16, 32, 64, 128, 256]
+                # disp 5
+                iconv5 = self._conv_reflect(res18_tc, 3, filters[4], 1, 'iconv5')
+                iconv5_upsample = tf.image.resize_nearest_neighbor(iconv5, [np.int(self.H / 16), np.int(self.W / 16)])
+                iconv5_concat = tf.concat([iconv5_upsample, skips[0]], axis=3)
+                upconv5 = self._conv_reflect(iconv5_concat, 3,  filters[4], 1, 'upconv5')
+
+                # disp 4
+                iconv4 = self._conv_reflect(upconv5, 3, filters[3], 1, 'iconv4')
+                iconv4_upsample = tf.image.resize_nearest_neighbor(iconv4, [np.int(self.H / 8), np.int(self.W / 8)])
+                iconv4_concat = tf.concat([iconv4_upsample, skips[1]], axis=3)
+                upconv4 = self._conv_reflect(iconv4_concat,3, filters[3], 1, 'upconv4')
+
+                # disp 3
+                iconv3 = self._conv_reflect(upconv4,3, filters[2], 1, 'iconv3')
+                iconv3_upsample = tf.image.resize_nearest_neighbor(iconv3, [np.int(self.H / 4), np.int(self.W / 4)])
+                iconv3_concat = tf.concat([iconv3_upsample, skips[2]], axis=3)
+                upconv3 = self._conv_reflect(iconv3_concat,3, filters[2],1, 'upconv3')
+
+                # disp 2
+                iconv2 = self._conv_reflect(upconv3,3, filters[1],1, 'iconv2')
+                iconv2_upsample = tf.image.resize_nearest_neighbor(iconv2, [np.int(self.H / 2), np.int(self.W / 2)])
+                iconv2_concat = tf.concat([iconv2_upsample, skips[3]], axis=3)
+                upconv2 = self._conv_reflect(iconv2_concat,3, filters[1], 1, 'upconv2')
+
+                # disp 1
+                iconv1 = self._conv_reflect(upconv2,3, filters[0], 1, 'iconv1')
+                iconv1_upsample = tf.image.resize_nearest_neighbor(iconv1, [np.int(self.H), np.int(self.W)])
+                iconv1_concat = iconv1_upsample
+                upconv1 = self._conv_reflect(iconv1_concat,3, filters[0],1,'upconv1')
+                disp1 = self._conv_reflect(upconv1, 3, 1, 1, 'disp1', activation_fn=tf.nn.sigmoid)
+
+                return disp1
 
     def build_pose_net2(self, res18):
         print('Building Pose Decoder Model')
@@ -193,9 +237,11 @@ class Net(object):
         x = slim.conv2d(x, out_channel, [filter_size, filter_size], stride,padding=pad, scope=name)
         return x
 
-    def _conv_reflect(self, x, filter_size, out_channel, stride, name='conv', activation_fn=tf.nn.elu):
+    # def _conv_reflect(self, x, filter_size, out_channel, stride, name='conv', activation_fn=tf.nn.elu):
+    def _conv_reflect(self, x, filter_size, out_channel, stride, name='conv', activation_fn=tf.nn.relu):
         pad_size = np.int(filter_size // 2)
-        pad_x = tf.pad(x,[[0,0], [pad_size, pad_size], [pad_size, pad_size], [0,0]], mode='REFLECT')
+        # pad_x = tf.pad(x,[[0,0], [pad_size, pad_size], [pad_size, pad_size], [0,0]], mode='REFLECT')
+        pad_x = tf.pad(x,[[0,0], [pad_size, pad_size], [pad_size, pad_size], [0,0]], mode='CONSTANT')
         x = slim.conv2d(pad_x, out_channel, [filter_size, filter_size], stride, padding='VALID', scope=name, activation_fn=activation_fn)
         return x
 
