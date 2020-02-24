@@ -33,12 +33,12 @@ class DataLoader(object):
         img_reader = tf.WholeFileReader()
         _, image_contents = img_reader.read(image_paths_queue)
         image_seq = tf.image.decode_jpeg(image_contents)
+        # image_seq = tf.image.resize(image_seq, [self.img_height, self.img_width*3], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
         # image_seq = tf.image.grayscale_to_rgb(image_seq)
         # [H, W, 3] and [H, W, 3 * num_source]
         tgt_image, src_image_stack = \
             self.unpack_image_sequence(
                 image_seq, self.img_height, self.img_width, self.num_source)
-
         # Load camera intrinsics
         cam_reader = tf.TextLineReader()
         _, raw_cam_contents = cam_reader.read(cam_paths_queue)
@@ -49,6 +49,7 @@ class DataLoader(object):
                                     record_defaults=rec_def)
         raw_cam_vec = tf.stack(raw_cam_vec)
         intrinsics = tf.reshape(raw_cam_vec, [3, 3])
+        # intrinsics = self.get_scale_intrinsics(intrinsics, np.float(self.img_width/320.), np.float(self.img_height/240.))
 
         # Form training batches
         src_image_stack, tgt_image, intrinsics = \
@@ -148,7 +149,7 @@ class DataLoader(object):
 
     def unpack_image_sequence(self, image_seq, img_height, img_width, num_source):
         # Assuming the center image is the target frame
-        #print(image_seq.get_shape().as_list())
+        # print(image_seq.get_shape().as_list())
         tgt_start_idx = int(img_width * (num_source//2))
         # [h, w, 3]
         tgt_image = tf.slice(image_seq,
@@ -210,3 +211,14 @@ class DataLoader(object):
                 self.make_intrinsics_matrix(fx, fy, cx, cy))
         intrinsics_mscale = tf.stack(intrinsics_mscale, axis=1)
         return intrinsics_mscale
+
+    def get_scale_intrinsics(self, intrinsics, scale_factor_x, scale_factor_y):
+        fx = intrinsics[0,0] * scale_factor_x
+        fy = intrinsics[1,1] * scale_factor_y
+        cx = intrinsics[0,2] * scale_factor_x
+        cy = intrinsics[1,2] * scale_factor_y
+
+        raw_cam_vec = tf.stack([fx, 0., cx, 0., fy, cy, 0., 0., 1.])
+        intrinsics = tf.reshape(raw_cam_vec, [3, 3])
+
+        return intrinsics

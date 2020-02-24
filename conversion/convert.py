@@ -31,18 +31,25 @@ class SaveModel(object):
         return image
 
     def generate_datasets(self):
-        num_calibration_steps = 600
+        num_calibration_steps = 100
         for _ in range(num_calibration_steps):
             input = np.random.random_sample((1, self.img_height, self.img_width, 3))
             yield [np.array(input, dtype='float32')]
 
+    # def generate_datasets(self):
+    #     num_calibration_steps = 100
+    #     for _ in range(num_calibration_steps):
+    #         input = np.random.randint(256, size=(1, self.img_height, self.img_width, 3))
+    #         yield [np.array(input, dtype=np.uint8)]
+
     def convert_savedModel_quant_tflite(self, savedModel_dir):
         converter = tf.lite.TFLiteConverter.from_saved_model(savedModel_dir)
+        converter.experimental_new_converter = True
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
         converter.representative_dataset = self.generate_datasets
         converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-        converter.inference_input_type = tf.float32
-        converter.inference_output_type = tf.float32
+        converter.inference_input_type = tf.uint8
+        converter.inference_output_type = tf.uint8
         tflite_quant_model = converter.convert()
         save_tflite_path = savedModel_dir + '/saved_model_quant.tflite'
         open(save_tflite_path, "wb").write(tflite_quant_model)
@@ -79,6 +86,7 @@ class SaveModel(object):
             print(var)
 
         input_image = np.random.random_sample(size=(1, self.img_height, self.img_width, 3))
+        input_image_uint8 = np.random.randint(256, size=(1, self.img_height, self.img_width, 3), dtype=np.uint8)
         with tf.Session() as sess:
             self.saver.restore(sess, ckpt_dir)
             feed_dict = {self.tgt_image: input_image}

@@ -29,7 +29,7 @@ def read_datasets(input_dir):
 def yield_data_from_datasets(input_dir):
     N = len(glob(input_dir + '/*.jpg'))
     image = None
-    for n in range(1, N+1, 50):
+    for n in range(1, N+1, 5):
         frame_id = str(n).zfill(6)
         image_path = input_dir + '/' + frame_id + '.jpg'
 
@@ -46,8 +46,8 @@ def get_image(all_frames, id, resize_ratio, crop=False, width=320):
 
     return tgt_image_np
 
-def process_image_eval_tflite(image, width, height, resize_ratio):
-    image = cv2.resize(image, dsize=(int(image.shape[1]*resize_ratio), int(image.shape[0]*resize_ratio)))
+def process_image_eval_tflite(image, width, height, resize_ratio_width, resize_ratio_height):
+    image = cv2.resize(image, dsize=(int(image.shape[1]*resize_ratio_width), int(image.shape[0]*resize_ratio_height)))
 
     tgt_image_np = image[: height, : width, :]
     tgt_depth_np = image[height :, : width, :]

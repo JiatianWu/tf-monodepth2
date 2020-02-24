@@ -97,6 +97,7 @@ class Net(object):
                 iconv2_upsample = tf.image.resize_nearest_neighbor(iconv2, [np.int(self.H / 2), np.int(self.W / 2)])
                 iconv2_concat = tf.concat([iconv2_upsample, skips[3]], axis=3)
                 upconv2 = self._conv_reflect(iconv2_concat,3, filters[1], 1, 'upconv2')
+                disp2 = self._conv_reflect(upconv2,3, 1, 1, 'disp2', activation_fn=tf.nn.sigmoid)
 
                 # disp 1
                 iconv1 = self._conv_reflect(upconv2,3, filters[0], 1, 'iconv1')

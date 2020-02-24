@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import tflite_runtime.interpreter as tflite
 import tensorflow as tf
 
-from data_io import *
+from conversion.data_io import *
 
 EDGETPU_SHARED_LIB = 'libedgetpu.so.1'
 
@@ -83,15 +83,15 @@ class DepthEstimation():
         return disp_map
 
 if __name__ == '__main__':
-    model_file = '/home/jiatian/project/tf-monodepth2/tmp_depth_maxdepth10/saved_model_quant.tflite'
-    width = 320
-    height = 240
+    model_file = '/home/jiatian/project/edgetpu/compiler/x86_64/saved_model_quant_edgetpu.tflite'
+    width = 320 #256
+    height = 240 #192
     input_size = (width, height) # (width, height)
-    hardware = 'cpu'
+    hardware = 'edgetpu'
     depth_estimator = DepthEstimation(model_file=model_file, input_size=input_size, hardware=hardware)
 
     input_dir = '/home/jiatian/dataset/tmp_test/tmp_tello_2'
-    output_dir = '/home/jiatian/dataset/tmp_test/tmp_tello_tflite_maxdepth10'
+    output_dir = '/home/jiatian/dataset/tmp_test/tmp_tello_tflite_maxdepth10_nod_320_240_0215'
     data_source = yield_data_from_datasets(input_dir)
     data_source = iter(data_source)
     output_dir = build_output_dir(output_dir=output_dir)
@@ -104,13 +104,13 @@ if __name__ == '__main__':
         print('Step: ', step)
         image = next(data_source)
 
-        image, gt_depth = process_image_eval_tflite(image, width, height, resize_ratio=1.0/3)
-
+        resize_ratio_width = np.float(width/320.) / 3
+        resize_ratio_height = np.float(height/240.) / 3
+        image, gt_depth = process_image_eval_tflite(image, width, height, resize_ratio_width, resize_ratio_height)
         disp_map = depth_estimator.EstimateDisp(image)
 
         eval_depth = vis_disparity(disp_map, min_depth, max_depth)
-
-        import pdb; pdb.set_trace()
+        eval_depth = Image.fromarray(eval_depth).resize((width, height))
 
         toshow_image = merge_image(vis_image(image), vis_image(gt_depth), eval_depth)
         cv2.imwrite(output_dir + '/' + str(step).zfill(6) + '.jpg', toshow_image)
