@@ -2,10 +2,10 @@ from conversion.convert import SaveModel
 import yaml
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 if __name__ == "__main__":
-    dataset_name = 'nod'
+    dataset_name = 'nod_test'
 
     if dataset_name == 'tello':
         config_path = 'config/monodepth2_tello.yml'
@@ -67,8 +67,11 @@ if __name__ == "__main__":
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.save_pb(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model/ckpt_nod/0213_640_480/model-756002',
-                    pb_path='/home/jiatian/project/tf-monodepth2/saved_model/tflite_test/tmp_nod_test_0218/saved_model.pb')
+        # app.save_pb(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model/ckpt_nod/0213_640_480/model.latest',
+        #             pb_path='/home/jiatian/project/tf-monodepth2/saved_model/tflite_test/tmp_nod_test_0302/saved_model.pb')
         # app.save_savedModel(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model/ckpt_nod/0213_640_480/model-504002',
         #                     savedModel_dir ='saved_model/tflite_test/tmp_nod_test_0216',
         #                     save_tflite=False)
+        app.test_video(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model/ckpt_nod/0213_640_480/model-756002',
+                       input_dir='/home/jiatian/dataset/nod_device/Demo_Record2/nodvi/device/data/images2',
+                       output_dir='/home/jiatian/dataset/tmp/tmp_nod_in')

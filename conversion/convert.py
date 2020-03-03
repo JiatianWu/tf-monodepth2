@@ -137,7 +137,7 @@ class SaveModel(object):
         var_list += tf.trainable_variables()
         self.saver = tf.train.Saver(var_list, max_to_keep=10)
 
-        all_frames = read_datasets(input_dir=input_dir)
+        all_frames = read_nod_datasets(input_dir=input_dir)
         output_dir = build_output_dir(output_dir=output_dir)
 
         config = tf.ConfigProto()
@@ -155,7 +155,7 @@ class SaveModel(object):
             }
 
             try:
-                tgt_image_np = get_image(all_frames, step, resize_ratio=1.0, crop=True)
+                tgt_image_np = get_image(all_frames, step, resize_ratio=1.0, crop=False)
             except:
                 continue
 

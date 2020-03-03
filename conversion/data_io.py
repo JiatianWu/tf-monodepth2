@@ -26,6 +26,17 @@ def read_datasets(input_dir):
 
     return all_frames
 
+def read_nod_datasets(input_dir):
+    all_frames = []
+    # N = len(glob(input_dir + '/*.pgm'))
+    # for n in range(N):
+    #     frame_id = str(n).zfill(6)
+    #     all_frames.append(input_dir + '/' + frame_id + '.jpg')
+    for file in sorted(os.listdir(input_dir)):
+        all_frames.append(input_dir + '/' + file)
+
+    return all_frames
+
 def yield_data_from_datasets(input_dir):
     N = len(glob(input_dir + '/*.jpg'))
     image = None
@@ -42,7 +53,9 @@ def get_image(all_frames, id, resize_ratio, crop=False, width=320):
     if crop:
         image = image[: , width: width*2, :]
     tgt_image_np = cv2.resize(image, dsize=(int(image.shape[1]*resize_ratio), int(image.shape[0]*resize_ratio)))
-    tgt_image_np = np.expand_dims(tgt_image_np, axis=0)
+    tgt_image_np_full = np.zeros((480, 640, 3), dtype=np.uint8)
+    tgt_image_np_full[:400, :, :] = tgt_image_np
+    tgt_image_np = np.expand_dims(tgt_image_np_full, axis=0)
 
     return tgt_image_np
 
