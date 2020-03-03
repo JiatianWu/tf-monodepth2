@@ -77,9 +77,9 @@ def disp_to_depth_np(disp, min_depth, max_depth):
 def get_image_depth(results, tgt_image_np, min_depth, max_depth):
     disp_resized_np = np.squeeze(results['disp'])
 
-    colormapped_depth = vis_disparity(disp_resized_np, min_depth, max_depth)
+    colormapped_depth = vis_disparity(disp_resized_np[:400, :, :], min_depth, max_depth)
     tgt_image_np = vis_image(tgt_image_np)
-    toshow_image = np.vstack((tgt_image_np, colormapped_depth))
+    toshow_image = np.vstack((tgt_image_np[:400, :, :], colormapped_depth))
 
     return toshow_image
 
