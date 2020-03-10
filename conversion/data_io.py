@@ -9,6 +9,9 @@ import cv2
 import matplotlib as mpl
 import matplotlib.cm as cm
 
+
+from conversion.bilateral_filter import bilateral_filter
+
 def build_output_dir(output_dir):
     try:
         os.makedirs(output_dir, exist_ok=False)
@@ -46,15 +49,18 @@ def yield_data_from_datasets(input_dir):
 
         yield cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
 
-def get_image(all_frames, id, resize_ratio, crop=False, width=320):
+def get_image(all_frames, id, resize_ratio, crop=False, width=320, mask_height=False):
     image_path = all_frames[id]
     image = cv2.imread(image_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     if crop:
         image = image[: , width: width*2, :]
     tgt_image_np = cv2.resize(image, dsize=(int(image.shape[1]*resize_ratio), int(image.shape[0]*resize_ratio)))
-    tgt_image_np_full = np.zeros((480, 640, 3), dtype=np.uint8)
-    tgt_image_np_full[:400, :, :] = tgt_image_np
+    tgt_image_np_full = np.zeros((tgt_image_np.shape[0], tgt_image_np.shape[1], 3), dtype=np.uint8)
+    if mask_height:
+        tgt_image_np_full[:400, :, :] = tgt_image_np
+    else:
+        tgt_image_np_full[:, :, :] = tgt_image_np
     tgt_image_np = np.expand_dims(tgt_image_np_full, axis=0)
 
     return tgt_image_np
@@ -74,12 +80,25 @@ def disp_to_depth_np(disp, min_depth, max_depth):
     depth = 1.0 / scaled_disp
     return depth
 
-def get_image_depth(results, tgt_image_np, min_depth, max_depth):
+def get_image_depth(results, tgt_image_np, min_depth, max_depth, use_bf=True, mask_height=False):
     disp_resized_np = np.squeeze(results['disp'])
 
-    colormapped_depth = vis_disparity(disp_resized_np[:400, :, :], min_depth, max_depth)
+    if mask_height:
+        tgt_image_np_valid = tgt_image_np[0, :400, :, :]
+        disp_resized_np_valid = disp_resized_np[:400, :]
+    else:
+        tgt_image_np_valid = tgt_image_np[0, :, :, :]
+        disp_resized_np_valid = disp_resized_np[:, :]
+
+    depth_map = disp_to_depth_np(disp_resized_np_valid, min_depth, max_depth)
+    if use_bf:
+        start = time.time()
+        depth_map = bilateral_filter(tgt_image_np_valid, depth_map)
+        print('Bilateral filter takes: ', time.time() - start)
+
+    colormapped_depth = vis_depth(depth_map, min_depth, max_depth)
     tgt_image_np = vis_image(tgt_image_np)
-    toshow_image = np.vstack((tgt_image_np[:400, :, :], colormapped_depth))
+    toshow_image = np.vstack((tgt_image_np, colormapped_depth))
 
     return toshow_image
 
@@ -91,23 +110,15 @@ def vis_image(image):
 
     return tgt_image_np
 
-def vis_disparity(disp, min_depth, max_depth):
-    disp_resized_vis = disp_to_depth_np(disp, min_depth, max_depth)
-    vmax = np.percentile(disp_resized_vis, 95)
-    vmin = disp.min()
+def vis_depth(depth_map, min_depth, max_depth):
+    vmax = np.percentile(depth_map, 95)
+    vmin = depth_map.min()
     normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     mapper = mpl.cm.ScalarMappable(norm=normalizer, cmap='viridis')
 
-    colormapped_im = (mapper.to_rgba(disp_resized_vis)[:, :, :3][:,:,::-1] * 255).astype(np.uint8)
+    colormapped_im = (mapper.to_rgba(depth_map)[:, :, :3][:,:,::-1] * 255).astype(np.uint8)
 
     return colormapped_im
-
-def vis_depth(depth_map, cmap):
-    d_min = np.min(depth_map)
-    d_max = np.max(depth_map)
-    depth_relative = (depth_map - d_min) / (d_max - d_min)
-
-    return 255 * cmap(depth_relative)[:,:,:3]
 
 def merge_image(img_a, img_b, img_c=None, img_d=None):
     res_image = np.vstack((img_a, img_b))
