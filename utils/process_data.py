@@ -123,7 +123,36 @@ def plot_imu_traj(folder):
     # plt.plot(p_z)
     # plt.show()
 
+def read_amazon_data(data_file_name):
+    data = open(data_file_name,"rb")
+    rgbd = pickle.load(data)
+    rgb = rgbd['rgb']
+
+    rgb_new = np.zeros(rgb.shape, dtype=np.uint8)
+    xx, yy = np.meshgrid(np.arange(0, 640, 1), np.arange(0, 480, 1), sparse=False)
+    for i in range(0, 640, 1):
+        for j in range(0, 480, 1):
+            x_std, y_std = wrap_pixel(float(i), float(j))
+            x_std = round(x_std)
+            y_std = round(y_std)
+            if x_std >= 0 and x_std <= (640 -1) and y_std >= 0 and y_std <= (480 -1):
+                rgb_new[y_std, x_std, :] = rgb[j, i, :]
+
+    plt.imshow(np.hstack((rgb, rgb_new)))
+    plt.show(block=True)
+
+def wrap_pixel(x, y):
+    [fx_orig, fy_orig, cx_orig, cy_orig] = [400.516317, 400.410970, 320.171183, 243.274495]
+    [fx_std, fy_std, cx_std, cy_std] = [518.857901, 519.469611, 325.582449, 253.736166]
+    x_norm = (x - cx_orig) / fx_orig
+    y_norm = (y - cy_orig) / fy_orig
+    x_std = fx_std * x_norm + cx_std
+    y_std = fy_std * y_norm + cy_std
+
+    return x_std, y_std
+
 if __name__ == "__main__":
     # resave_imu_data()
     # plot_acc_data('/home/jiatian/dataset/office_kitchen_0001a')
-    plot_imu_traj('/home/jiatian/dataset/office_kitchen_0001a')
+    # plot_imu_traj('/home/jiatian/dataset/office_kitchen_0001a')
+    read_amazon_data('/home/jiatian/dataset/amazon/raw_data/000001.pkl')

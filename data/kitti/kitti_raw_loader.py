@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 from glob import glob
 import os
-import scipy.misc
+import PIL.Image as Image
 
 class kitti_raw_loader(object):
     def __init__(self, 
@@ -26,6 +26,8 @@ class kitti_raw_loader(object):
         self.collect_static_frames(static_frames_file)
         self.collect_train_frames()
 
+        print('Finish collecting KITTI dataset!')
+
     def collect_static_frames(self, static_frames_file):
         with open(static_frames_file, 'r') as f:
             frames = f.readlines()
@@ -37,23 +39,23 @@ class kitti_raw_loader(object):
             curr_fid = '%.10d' % (np.int(frame_id[:-1]))
             for cid in self.cam_ids:
                 self.static_frames.append(drive + ' ' + cid + ' ' + curr_fid)
-        
+
     def collect_train_frames(self):
         all_frames = []
         for date in self.date_list:
             drive_set = os.listdir(self.dataset_dir + date + '/')
             for dr in drive_set:
                 drive_dir = os.path.join(self.dataset_dir, date, dr)
+                # import pdb; pdb.set_trace()
                 if os.path.isdir(drive_dir):
-                    if dr[:-5] in self.test_scenes:
-                        continue
+                    # if dr[:-5] in self.test_scenes:
+                    #     continue
                     for cam in self.cam_ids:
                         img_dir = os.path.join(drive_dir, 'image_' + cam, 'data')
-                        N = len(glob(img_dir + '/*.png'))
+                        N = len(glob(img_dir + '/*.jpg'))
                         for n in range(N):
                             frame_id = '%.10d' % n
                             all_frames.append(dr + ' ' + cam + ' ' + frame_id)
-                        
 
         for s in self.static_frames:
             try:
@@ -93,9 +95,9 @@ class kitti_raw_loader(object):
             curr_drive, curr_cid, curr_frame_id = frames[curr_idx].split(' ')
             curr_img = self.load_image_raw(curr_drive, curr_cid, curr_frame_id)
             if o == 0:
-                zoom_y = self.img_height/curr_img.shape[0]
-                zoom_x = self.img_width/curr_img.shape[1]
-            curr_img = scipy.misc.imresize(curr_img, (self.img_height, self.img_width))
+                zoom_y = self.img_height/curr_img.size[1]
+                zoom_x = self.img_width/curr_img.size[0]
+            curr_img = np.array(curr_img.resize((self.img_width, self.img_height)))
             image_seq.append(curr_img)
         return image_seq, zoom_x, zoom_y
 
@@ -113,8 +115,8 @@ class kitti_raw_loader(object):
 
     def load_image_raw(self, drive, cid, frame_id):
         date = drive[:10]
-        img_file = os.path.join(self.dataset_dir, date, drive, 'image_' + cid, 'data', frame_id + '.png')
-        img = scipy.misc.imread(img_file)
+        img_file = os.path.join(self.dataset_dir, date, drive, 'image_' + cid, 'data', frame_id + '.jpg')
+        img = Image.open(img_file)
         return img
 
     def load_intrinsics_raw(self, drive, cid, frame_id):
