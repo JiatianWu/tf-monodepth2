@@ -60,10 +60,10 @@ class SaveModel(object):
         self.tgt_image_uint8 = tf.placeholder(tf.uint8, [1, self.img_height, self.img_width, 3], name='input_uint8')
         with tf.name_scope('data_loading'):
             tgt_image = tf.image.convert_image_dtype(self.tgt_image_uint8, dtype=tf.float32)
+        self.tgt_image_float = tf.identity(tgt_image, name='input')
+        tgt_image_net = self.preprocess_image(self.tgt_image_float)
 
-        self.tgt_image = tf.identity(tgt_image, name='input')
-        tgt_image_net = self.preprocess_image(self.tgt_image)
-
+        # self.tgt_image_float = tf.placeholder(tf.float32, [None, self.img_height, self.img_width, 3], name='input')
         with tf.variable_scope('monodepth2_model', reuse=tf.AUTO_REUSE) as scope:
             net_builder = Net(False, **self.config)
 

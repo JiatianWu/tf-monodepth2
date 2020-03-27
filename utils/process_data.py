@@ -2,9 +2,18 @@ import os
 import pdb
 import pickle
 import numpy as np
+import cv2
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
+import matplotlib as mpl
+import matplotlib.cm as cm
 import tensorflow as tf
+
+from tools import *
+from bilateral_filter import bilateral_filter
 
 def debug_convert():
     img_path = '/home/jiatian/dataset/tum/sequence_01/000001.jpg'
@@ -151,8 +160,108 @@ def wrap_pixel(x, y):
 
     return x_std, y_std
 
+def vis_depth(depth_map):
+    vmax = np.percentile(depth_map, 95)
+    vmin = depth_map.min()
+    normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    mapper = mpl.cm.ScalarMappable(norm=normalizer, cmap='viridis')
+
+    colormapped_im = (mapper.to_rgba(depth_map)[:, :, :3][:,:,::-1] * 255).astype(np.uint8)
+
+    return colormapped_im[:, :, ::-1]
+
+def vis_float_image(folder):
+    seqs = sorted(os.listdir(folder))
+    idx = 0
+    for seq in seqs:
+        if 'yml' in seq and idx >= 0:
+            image_path = folder + '/' + seq
+            # image = np.array(Image.open(image_path), dtype=np.float)
+            fs = cv2.FileStorage(image_path, cv2.FILE_STORAGE_READ)
+            image = fs.getNode('depth_map').mat()
+
+            rgb_image = np.array(Image.open('/home/jiatianwu/eval/eval_data/' + seq[:-4] + '.jpg'))
+            # image_bf = bilateral_filter(rgb_image, image)
+            image_bf = image
+            depth_image = vis_depth(image_bf)
+            image_save = np.vstack((rgb_image, depth_image))
+            Image.fromarray(image_save).save('/home/jiatianwu/eval/eval_comp/' + seq[:-4] + '.jpg')
+            # plt.imshow(vis_depth(image))
+            # plt.show()
+
+        idx += 1
+
+def vis_zcu_image(folder):
+    seqs = sorted(os.listdir(folder))
+    idx = 0
+    for seq in seqs:
+        data_path = folder + '/' + seq
+        data = open(data_path,"rb")
+        rgbd = pickle.load(data)
+
+        rgb = rgbd['rgb']
+        depth_image = rgbd['depth']
+        depth_tflite_image = rgbd['tflite']
+        depth_vitis_image = rgbd['vitis']
+        image_show = np.vstack((rgb, depth_image, depth_tflite_image, depth_vitis_image))
+
+        img = Image.fromarray(image_show)
+        draw = ImageDraw.Draw(img)
+        font = ImageFont.truetype("Agane.ttf", 32)
+        draw.text((0, 0),"RGB Image",(255,0,0),font=font)
+        draw.text((0, 480),"Depth Image before Quantization",(255,0,0),font=font)
+        draw.text((0, 960),"Depth Image post-quantization \n EdgeTPU",(255,0,0),font=font)
+        draw.text((0, 1440),"Depth Image post-quantization \n DPU",(255,0,0),font=font)
+        img.save('saved_images/' + str(idx).zfill(6) + '.jpg')
+        # plt.imshow(image_show)
+        # plt.show(block=False)
+
+        # plt.pause(0.001)
+        # plt.clf()
+
+        idx += 1
+
+def process_tello(folder):
+    seqs = sorted(os.listdir(folder))
+    for idx in range(0, len(seqs), 5):
+        data_path = folder + '/' + str(idx).zfill(6) + '.jpg'
+        image = Image.open(data_path).resize((640, 480))
+        image.save('/home/jiatianwu/dataset/tello_vga/' + str(int(idx/5)).zfill(6) + '.jpg')
+
+        data_dict = {'rgb': np.array(image)}
+        dict_file_name = '/home/jiatianwu/dataset/tello_pickle/' + str(int(idx/5)).zfill(6) + '.pkl'
+        f = open(dict_file_name,"wb")
+        pickle.dump(data_dict,f)
+        f.close()
+
+def vis_pickle_image(data_path):
+    data = open(data_path,"rb")
+    rgbd = pickle.load(data)
+
+    rgb = rgbd['rgb']
+    depth_image = rgbd['depth']
+    depth_image_zcu = rgbd['tflite']
+    image_show = np.vstack((rgb, depth_image, depth_image_zcu))
+
+    img = Image.fromarray(image_show)
+    draw = ImageDraw.Draw(img)
+    # font = ImageFont.truetype(<font-file>, <font-size>)
+    font = ImageFont.truetype("Agane.ttf", 32)
+    # draw.text((x, y),"Sample Text",(r,g,b))
+    draw.text((0, 0),"Sample Text",(255,0,0),font=font)
+    draw.text((0, 480),"Sample Text",(255,0,0),font=font)
+    draw.text((0, 960),"Sample Text",(255,0,0),font=font)
+    img.save('sample-out.jpg')
+
+    # plt.imshow(image_show)
+    # plt.show(block=True)
+
 if __name__ == "__main__":
     # resave_imu_data()
     # plot_acc_data('/home/jiatian/dataset/office_kitchen_0001a')
     # plot_imu_traj('/home/jiatian/dataset/office_kitchen_0001a')
-    read_amazon_data('/home/jiatian/dataset/amazon/raw_data/000001.pkl')
+    # read_amazon_data('/home/jiatian/dataset/amazon/raw_data/000001.pkl')
+    # vis_float_image('/home/jiatianwu/eval/eval_res')
+    vis_zcu_image('/home/jiatianwu/project/vitis-ai/nod_depth/saved_data/rgbd_tflite_vitis_data')
+    # process_tello('/home/jiatianwu/dataset/tello')
+    # vis_pickle_image('/home/jiatianwu/000001.pkl')
