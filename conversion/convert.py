@@ -31,7 +31,7 @@ class SaveModel(object):
         return image
 
     def generate_datasets(self):
-        num_calibration_steps = 100
+        num_calibration_steps = 600
         for _ in range(num_calibration_steps):
             input = np.random.random_sample((1, self.img_height, self.img_width, 3))
             yield [np.array(input, dtype='float32')]
@@ -48,8 +48,8 @@ class SaveModel(object):
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
         converter.representative_dataset = self.generate_datasets
         converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-        converter.inference_input_type = tf.uint8
-        converter.inference_output_type = tf.uint8
+        converter.inference_input_type = tf.float32
+        converter.inference_output_type = tf.float32
         tflite_quant_model = converter.convert()
         save_tflite_path = savedModel_dir + '/saved_model_quant.tflite'
         open(save_tflite_path, "wb").write(tflite_quant_model)
@@ -57,10 +57,12 @@ class SaveModel(object):
     def build_depth(self):
         from model.net import Net
 
-        self.tgt_image_uint8 = tf.placeholder(tf.uint8, [1, self.img_height, self.img_width, 3], name='input')
+        self.tgt_image_uint8 = tf.placeholder(tf.uint8, [1, self.img_height, self.img_width, 3], name='input_uint8')
         with tf.name_scope('data_loading'):
-            self.tgt_image = tf.image.convert_image_dtype(self.tgt_image_uint8, dtype=tf.float32)
-            tgt_image_net = self.preprocess_image(self.tgt_image)
+            tgt_image = tf.image.convert_image_dtype(self.tgt_image_uint8, dtype=tf.float32)
+
+        self.tgt_image = tf.identity(tgt_image, name='input')
+        tgt_image_net = self.preprocess_image(self.tgt_image)
 
         with tf.variable_scope('monodepth2_model', reuse=tf.AUTO_REUSE) as scope:
             net_builder = Net(False, **self.config)

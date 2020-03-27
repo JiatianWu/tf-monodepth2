@@ -110,7 +110,7 @@ def vis_image(image):
 
     return tgt_image_np
 
-def vis_depth(depth_map, min_depth, max_depth):
+def vis_depth(depth_map):
     vmax = np.percentile(depth_map, 95)
     vmin = depth_map.min()
     normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
@@ -118,7 +118,7 @@ def vis_depth(depth_map, min_depth, max_depth):
 
     colormapped_im = (mapper.to_rgba(depth_map)[:, :, :3][:,:,::-1] * 255).astype(np.uint8)
 
-    return colormapped_im
+    return colormapped_im[:, :, ::-1]
 
 def merge_image(img_a, img_b, img_c=None, img_d=None):
     res_image = np.vstack((img_a, img_b))
