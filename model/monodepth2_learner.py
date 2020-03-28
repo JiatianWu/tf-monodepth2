@@ -24,6 +24,8 @@ class MonoDepth2Learner(object):
         self.root_dir = self.config['model']['root_dir']
         self.pose_type = self.config['model']['pose_type']
 
+        self.resize_bilinear = True
+
     def preprocess_image(self, image):
         image = (image - 0.45) / 0.225
         return image
@@ -213,7 +215,10 @@ class MonoDepth2Learner(object):
             #
             # pred_poses = net_builder.build_pose_net(res18_tp, res18_tc, res18_tn)
 
-            pred_disp = net_builder.build_disp_net(res18_tc, skips_tc)
+            if self.resize_bilinear:
+                pred_disp = net_builder.build_disp_net_bilinear(res18_tc, skips_tc)
+            else:
+                pred_disp = net_builder.build_disp_net(res18_tc, skips_tc)
 
             H = tgt_image.get_shape().as_list()[1]
             W = tgt_image.get_shape().as_list()[2]
