@@ -26,7 +26,7 @@ YUV_OFFSET = np.array([0, 128.0, 128.0]).reshape(1, 1, -1)
 grid_params = {
     'sigma_luma' : 4, # Brightness bandwidth
     'sigma_chroma': 4, # Color bandwidth
-    'sigma_spatial': 8 # Spatial bandwidth
+    'sigma_spatial': 6 # Spatial bandwidth
 }
 
 bs_params = {
@@ -166,7 +166,7 @@ def bilateral_filter(reference, target):
     target_min = target.min()
     # import pdb; pdb.set_trace()
     # target = np.uint16((target - target_min) * 65535)
-    target = np.uint16(target*1000)
+    target = np.uint16(target*10000)
     confidence = np.ones(target.shape, dtype=np.uint16) * 65535
 
     # mask = np.where(target==target.max())

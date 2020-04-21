@@ -9,14 +9,13 @@ import os
 
 parser = argparse.ArgumentParser()
 
-dataset_name = 'nyu_fullRes'
-
-parser.add_argument("--seq_length", type=int, default=3, help="Length of each training sequence")
-parser.add_argument("--img_height", type=int, default=480, help="image height")
-parser.add_argument("--img_width", type=int, default=640, help="image width")
-parser.add_argument("--num_threads", type=int, default=16, help="number of threads to use")
+dataset_name = 'nod'
 
 if dataset_name == 'nyu_fullRes':
+    parser.add_argument("--seq_length", type=int, default=3, help="Length of each training sequence")
+    parser.add_argument("--img_height", type=int, default=480, help="image height")
+    parser.add_argument("--img_width", type=int, default=640, help="image width")
+    parser.add_argument("--num_threads", type=int, default=16, help="number of threads to use")
     parser.add_argument("--dataset_dir", type=str, default='/freezer/nyudepthV2_raw/', help="where the dataset is stored")
     parser.add_argument("--dataset_name", type=str, default='nyu_fullRes', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello", "nyu"])
     parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/nyu_fullRes/', help="Where to dump the data")
@@ -35,6 +34,24 @@ if dataset_name == 'tello':
     parser.add_argument("--dataset_dir", type=str, default='/home/jiatian/dataset/tello_raw/', help="where the dataset is stored")
     parser.add_argument("--dataset_name", type=str, default='tello', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello"])
     parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/tello/', help="Where to dump the data")
+
+if dataset_name == 'lyft':
+    parser.add_argument("--seq_length", type=int, default=3, help="Length of each training sequence")
+    parser.add_argument("--img_height", type=int, default=352, help="image height")
+    parser.add_argument("--img_width", type=int, default=608, help="image width")
+    parser.add_argument("--num_threads", type=int, default=16, help="number of threads to use")
+    parser.add_argument("--dataset_dir", type=str, default='/home/nod/datasets/lyft/raw_data/', help="where the dataset is stored")
+    parser.add_argument("--dataset_name", type=str, default='lyft', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello", "nyu"])
+    parser.add_argument("--dump_root", type=str, default='/home/nod/datasets/lyft/train_data/', help="Where to dump the data")
+
+if dataset_name == 'nod':
+    parser.add_argument("--seq_length", type=int, default=3, help="Length of each training sequence")
+    parser.add_argument("--img_height", type=int, default=480, help="image height")
+    parser.add_argument("--img_width", type=int, default=640, help="image width")
+    parser.add_argument("--num_threads", type=int, default=16, help="number of threads to use")
+    parser.add_argument("--dataset_dir", type=str, default='/home/nod/datasets/nod/undistorted/', help="where the dataset is stored")
+    parser.add_argument("--dataset_name", type=str, default='nod', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello", "nyu"])
+    parser.add_argument("--dump_root", type=str, default='/home/nod/datasets/nod/train_data/', help="Where to dump the data")
 
 args = parser.parse_args()
 
@@ -164,13 +181,59 @@ def main():
             except:
                 print("ERROR in " + str(id))
 
-    import pdb; pdb.set_trace()
+    if args.dataset_name == 'lyft':
+        from lyft.lyft_loader import lyft_loader
+        sequences_number = len(os.listdir(args.dataset_dir))
+        for id in range(sequences_number):
+            print('Sequence id: ', id)
+            # data_loader = lyft_loader(args.dataset_dir,
+            #                     split='sequence',
+            #                     sequence_id=id,
+            #                     img_height=args.img_height,
+            #                     img_width=args.img_width,
+            #                     seq_length=args.seq_length)
+            # Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+            try:
+                data_loader = lyft_loader(args.dataset_dir,
+                                    split='sequence',
+                                    sequence_id=id,
+                                    img_height=args.img_height,
+                                    img_width=args.img_width,
+                                    seq_length=args.seq_length)
+                Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+            except:
+                print("ERROR in " + str(id))
+
+    if args.dataset_name == 'nod':
+        from nod.nod_loader import nod_loader
+        sequences_number = len(os.listdir(args.dataset_dir))
+        for id in range(sequences_number):
+            print('Sequence id: ', id)
+            # data_loader = lyft_loader(args.dataset_dir,
+            #                     split='sequence',
+            #                     sequence_id=id,
+            #                     img_height=args.img_height,
+            #                     img_width=args.img_width,
+            #                     seq_length=args.seq_length)
+            # Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+            # try:
+            #     data_loader = nod_loader(args.dataset_dir,
+            #                         split='sequence',
+            #                         sequence_id=id,
+            #                         img_height=args.img_height,
+            #                         img_width=args.img_width,
+            #                         seq_length=args.seq_length)
+            #     Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+            # except:
+            #     print("ERROR in " + str(id))
+
     # Split into train/val
     np.random.seed(8964)
     subfolders = os.listdir(args.dump_root)
     with open(args.dump_root + 'train.txt', 'w') as tf:
         with open(args.dump_root + 'val.txt', 'w') as vf:
             for s in subfolders:
+                # if '_CAM_FRONT' in s and 'LEFT' not in s and 'RIGHT' not in s:
                 if not os.path.isdir(args.dump_root + '/%s' % s):
                     continue
                 imfiles = glob(os.path.join(args.dump_root, s, '*.jpg'))
@@ -185,4 +248,3 @@ def main():
                         tf.write('%s %s\n' % (s, frame))
 
 main()
-

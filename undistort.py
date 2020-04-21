@@ -2,15 +2,56 @@
 import os
 import cv2
 import numpy as np
+import pdb
 
 class Undistort():
     def __init__(self, input_dir, output_dir):
-        self.input_dir = input_dir
-        self.output_dir = output_dir
-        os.makedirs(self.output_dir, exist_ok=True)
+        # # device 33-d cam 0
+        # scale = 0.5
+        # fx = 583.780379265
+        # fy = 581.614977546
+        # cx = 651.918915441
+        # cy = 393.602999407
+        # d1 = 0.000455566535289
+        # d2 = -0.0107723719394
+        # d3 = 0.0126745953652
+        # d4 = -0.00432266278961
+        # self.K = np.array([[fx * scale, 0.0, cx * scale], [0.0, fy * scale, cy * scale], [0.0, 0.0, 1.0]])
+        # self.D = np.array([[d1], [d2], [d3], [d4]])
+        # self.compute_params(400, 640)
 
-        self.K = np.array([[286.92994997677204, 0.0, 324.67953012335556], [0.0, 286.4856509324264, 197.07953340996804], [0.0, 0.0, 1.0]])
-        self.D = np.array([[-0.00022113678021126206], [-0.0011227150767492507], [0.006647502459197323], [-0.0031347580009617264]])
+        # # device 33-d cam 1
+        # scale = 0.5
+        # fx = 582.67655407
+        # fy = 580.348189312
+        # cx = 656.558940024
+        # cy = 388.944643504
+        # d1 = -0.00381739132533
+        # d2 = -0.000706352642801
+        # d3 = 0.00384560146593
+        # d4 = -0.00147758671058
+        # self.K = np.array([[fx * scale, 0.0, cx * scale], [0.0, fy * scale, cy * scale], [0.0, 0.0, 1.0]])
+        # self.D = np.array([[d1], [d2], [d3], [d4]])
+        # self.compute_params(400, 640)
+
+        # device 33-d cam 2
+        scale = 0.5
+        fx = 578.5268625564958
+        fy = 577.1383787694714
+        cx = 648.2596757253186
+        cy = 386.23774307470114
+        d1 = 0.0005514600100266717
+        d2 = -0.002507127470220687
+        d3 = 0.0052494247618550365
+        d4 = -0.0019580885945972458
+        self.K = np.array([[fx * scale, 0.0, cx * scale], [0.0, fy * scale, cy * scale], [0.0, 0.0, 1.0]])
+        self.D = np.array([[d1], [d2], [d3], [d4]])
+        self.compute_params(400, 640)
+
+        # # device 35
+        # self.K = np.array([[288.15212989202263, 0.0, 327.18426388880783], [0.0, 287.69154276527473, 195.08868502968176], [0.0, 0.0, 1.0]])
+        # self.D = np.array([[-0.00022113678021126206], [-0.0011227150767492507], [0.006647502459197323], [-0.0031347580009617264]])
+        # self.compute_params(400, 640)
 
         # self.K = np.array([[501.00957821, 0.0, 713.40403809], [0.0, 499.15119612, 378.33847811], [0.0, 0.0, 1.0]])
         # self.D = np.array([[0.0], [0.0], [0.0], [0.0]])
@@ -19,22 +60,28 @@ class Undistort():
         # self.width_resize = int(1280 / 4)
         # self.height_resize = int(800 / 4)
         # self.dim_resize = (self.width_resize, self.height_resize)
+        self.input_dir = input_dir
+        self.output_dir = output_dir
+        os.makedirs(self.output_dir, exist_ok=True)
+
+    def compute_params(self, h, w):
+        DIM = (w, h)
+
+        self.dim1 = (640, 400)
+        self.dim2 = self.dim1
+        self.dim3 = self.dim1
+        self.scaled_K = self.K * self.dim1[0] / DIM[0]  # The values of K is to scale with image dimension.
+        self.scaled_K[2][2] = 1.0  # Except that K[2][2] is always 1.0
+
+        self.new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(self.scaled_K, self.D, self.dim2, np.eye(3), balance=0)
+
 
     def run(self, image):
         img = image
         h, w = img.shape[:2]
-        DIM = (w, h)
+        self.compute_params(h, w)
 
-        dim1 = (640, 400)
-        dim2 = dim1
-        dim3 = dim1
-
-        scaled_K = self.K * dim1[0] / DIM[0]  # The values of K is to scale with image dimension.
-        scaled_K[2][2] = 1.0  # Except that K[2][2] is always 1.0
-
-        new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(scaled_K, self.D, dim2, np.eye(3), balance=0)
-
-        map1, map2 = cv2.fisheye.initUndistortRectifyMap(scaled_K, self.D, np.eye(3), new_K, dim3, cv2.CV_16SC2)
+        map1, map2 = cv2.fisheye.initUndistortRectifyMap(self.scaled_K, self.D, np.eye(3), self.new_K, self.dim3, cv2.CV_16SC2)
         dst = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
         # newcameramtx, roi=cv2.getOptimalNewCameraMatrix(self.K, self.D,(w,h),1,(w,h))
@@ -46,8 +93,8 @@ class Undistort():
         # x,y,w,h = roi
         # dst = dst[y:y+h, x:x+w]
 
-        cv2.imshow('orig', img)
-        cv2.imshow('dst', dst)
+        # cv2.imshow('orig', img)
+        # cv2.imshow('dst', dst)
         # cv2.waitKey(0)
 
         return dst
@@ -69,7 +116,7 @@ class Undistort():
             print(img)
 
 if __name__ == "__main__":
-    input_dir = '/home/jiatian/dataset/nod_device/Demo_Record300_1/nodvi/device/data/images0/'
-    output_dir = '/home/jiatian/dataset/nod_device/Demo_Record300_1/nodvi/device/data/images0_undistorted/'
+    input_dir = '/home/nod/datasets/NewYork_resized/LH_TH_MS_2/michigan/ios/imageDump2/'
+    output_dir = '/home/nod/datasets/NewYork_resized/LH_TH_MS_2/michigan/ios/imageDump2_undistorted/'
     instance = Undistort(input_dir, output_dir)
     instance.undistort()

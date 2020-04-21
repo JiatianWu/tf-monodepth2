@@ -2,10 +2,10 @@ from conversion.convert import SaveModel
 import yaml
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 if __name__ == "__main__":
-    dataset_name = 'nod_test'
+    dataset_name = 'nod_device'
 
     if dataset_name == 'tello':
         config_path = 'config/monodepth2_tello.yml'
@@ -67,11 +67,55 @@ if __name__ == "__main__":
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.save_pb(ckpt_dir='/home/jiatianwu/project/tf-monodepth2/saved_model/ckpt_640_480/model-756002',
-                    pb_path='/home/jiatianwu/project/tf-monodepth2/saved_model/ckpt_640_480/saved_model.pb')
-        # app.save_savedModel(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model/ckpt_nod/0213_640_480/model-504002',
-        #                     savedModel_dir ='saved_model/tflite_test/tmp_nod_test_0216',
+        # app.save_pb(ckpt_dir='saved_model/ckpt_640_480/model-756002',
+        #             pb_path='saved_model/ckpt_320_240/saved_model.pb')
+        # app.save_savedModel(ckpt_dir='saved_model/ckpt_640_480/model-756002',
+        #                     savedModel_dir ='saved_model/tflite_320_240/',
+        #                     save_tflite=True)
+        # app.save_savedModel(ckpt_dir='saved_model/ckpt_640_480/model-756002',
+        #                     savedModel_dir ='saved_model/tflite_320_240_test/',
         #                     save_tflite=False)
+        app.save_savedModel(ckpt_dir='saved_model/ckpt_640_480_bilinear/model-2268002',
+                            savedModel_dir ='saved_model/tflite_320_240_bilinear/',
+                            save_tflite=True)
         # app.test_video(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model/ckpt_nod/0213_640_480/model-756002',
         #                input_dir='/home/jiatian/dataset/nod_device/Demo_Record2/nodvi/device/data/images2',
         #                output_dir='/home/jiatian/dataset/tmp/tmp_nod_in')
+    elif dataset_name == 'kitti':
+        config_path = 'config/monodepth2_kitti.yml'
+        with open(config_path, 'r') as f:
+            config = yaml.load(f)
+        app = SaveModel(config=config)
+        app.build_restore_model(ckpt_dir='saved_model/ckpt_tf_monodepth2_640_192_pt/model.latest')
+
+        # drive_list = ['2011_09_26_drive_0091_sync_02', '2011_09_26_drive_0020_sync_02', '2011_09_26_drive_0022_sync_02']
+        # root_dir = '/home/nod/datasets/kitti'
+        # output_dir = '/home/nod/datasets/kitti_eval_1'
+        # for dir in sorted(os.listdir(root_dir)):
+        #     if 'drive' in dir and dir == drive_list[2]:
+        #         dir_path = root_dir + '/' + dir
+        #         output_path = output_dir + '/' + dir 
+        #         app.test_dir_depth_pose(input_dir=dir_path,
+        #                                 output_dir=output_path)
+        dir_path = '/home/nod/project/TrianFlow/data/demo'
+        output_path = '/home/nod/project/TrianFlow/data/eval'
+        app.test_dir(input_dir=dir_path, output_dir=output_path)
+
+    elif dataset_name == 'lyft':
+        config_path = 'config/noddepth_lyft.yml'
+        with open(config_path, 'r') as f:
+            config = yaml.load(f)
+        app = SaveModel(config=config)
+        app.test_video(ckpt_dir='/home/nod/project/tf-monodepth2/saved_model/ckpt_tf_monodepth2_640_192_nopt/model.latest',
+                       input_dir='/home/nod/datasets/kitti/2011_09_26_drive_0106_sync_03',
+                       output_dir='/home/nod/datasets/kitti/eval_plasma')
+    elif dataset_name == 'nod_device':
+        config_path = 'config/noddepth_nyu_fullRes.yml'
+        with open(config_path, 'r') as f:
+            config = yaml.load(f)
+        app = SaveModel(config=config)
+        app.build_default_depth_model(ckpt_dir='saved_model/ckpt_640_480/model-756002')
+
+        dir_path = '/home/nod/datasets/nod/RB3/RB3_Demo_Record_15/nodvi/device/data/images0_undistorted'
+        output_path = '/home/nod/datasets/nod/RB3/RB3_Demo_Record_15/nodvi/device/data/images0_depth'
+        app.test_nod_dir(input_dir=dir_path, output_dir=output_path)

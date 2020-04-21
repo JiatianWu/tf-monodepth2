@@ -1,14 +1,14 @@
 dataset:
-    root_dir: '/home/jiatian/dataset/kitti/'
-    image_height: 192
-    image_width: 640
+    root_dir: '/home/nod/datasets/lyft/train_data/'
+    image_height: 352
+    image_width: 608
     min_depth: 0.1
     max_depth: 100.
     preprocess: True
 model:
-    root_dir: '/home/jiatian/project/tf-monodepth2/saved_model/ckpt_kitti'
+    root_dir: '/home/nod/project/tf-monodepth2/saved_model/ckpt_lyft/'
     learning_rate: 1e-4
-    batch_size: 1
+    batch_size: 8
     num_source: 3
     num_scales: 4
     epoch: 80
@@ -19,8 +19,9 @@ model:
     batch_norm_epsilon: 1e-5
     pose_scale: 1e-2
     auto_mask: True
-    continue_ckpt: ''
+    continue_ckpt: '/home/nod/project/tf-monodepth2/saved_model/ckpt_lyft/0407/model-128354'
+    #continue_ckpt: ''
     #torch_res18_ckpt: ''
-    torch_res18_ckpt: '/home/jiatian/project/tf-monodepth2/res_model_extractor/resnet18.npy'
+    torch_res18_ckpt: 'res_model_extractor/resnet18.npy'
     summary_freq: 200
     pose_type: 'seperate' # seperate or shared

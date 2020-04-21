@@ -1,5 +1,6 @@
 import os
 import pdb
+import h5py
 import pickle
 import numpy as np
 import cv2
@@ -12,7 +13,6 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 import tensorflow as tf
 
-from tools import *
 from bilateral_filter import bilateral_filter
 
 def debug_convert():
@@ -256,12 +256,182 @@ def vis_pickle_image(data_path):
     # plt.imshow(image_show)
     # plt.show(block=True)
 
+def vis_folder(folder):
+    dirlist = sorted(os.listdir(folder))
+    for seq in dirlist:
+        image_path = folder + '/' + seq
+        image = np.array(Image.open(image_path))
+
+        plt.imshow(image)
+        plt.show(block=True)
+        plt.pause(0.001)
+        plt.clf()
+
+    plt.close()
+
+def vis_image(path):
+    image = Image.open(path)
+    image = image.crop((0, 0, 1223, 699)).resize((608, 352))
+
+    image = np.array(image)
+    plt.imshow(image)
+    plt.show(block=True)
+    plt.close()
+
+def rename_folder(folder):
+    dirlist = sorted(os.listdir(folder))
+    for seq in dirlist:
+        if '_CAM' in seq:
+            continue
+        else:
+            os.rename(folder + '/' + seq, folder + '/' + seq + '_CAM_FRONT')
+
+def plot_trajectory(data_file_name):
+    # data = open(data_file_name,"rb")
+    # poses_log = pickle.load(data)
+
+    # poses_mat_log = []
+    # import torch
+    # for i in range(len(poses_log.keys())):
+    #     pose = poses_log[i]
+    #     pose = np.expand_dims(pose, axis=0)
+    #     pose = np.expand_dims(pose, axis=0)
+    #     pose_mat = transformation_from_parameters(torch.tensor(pose[:, :, :3]).float(), torch.tensor(pose[:, :, 3:]).float(), False)
+    #     poses_mat_log.append(pose_mat.numpy())
+
+    # xyzs = np.array(dump_xyz(poses_mat_log))
+    # save_path = '/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/xyz_log.npy'
+    # np.save(save_path, xyzs)
+
+    xyzs = np.load('/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/xyz_log.npy')
+
+    xs = []
+    ys = []
+    zs = []
+    for i in range(xyzs.shape[0]):
+        xs.append(xyzs[i][0])
+        ys.append(xyzs[i][1])
+        zs.append(xyzs[i][2])
+
+        plt.plot(xs, ys)
+        plt.savefig('/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/' + str(i).zfill(6) + '.jpg')
+
+
+def vis_depth_pose(folder_depth, folder_pose):
+    for i in range(792):
+        depth_image = np.array(Image.open(folder_depth + '/' + str(i).zfill(6) + '.jpg'))
+        pose_image = np.array(Image.open(folder_pose + '/' + str(i).zfill(6) + '.jpg'))
+
+        tosave_image = np.vstack((depth_image, pose_image))
+        Image.fromarray(tosave_image).save('/home/nod/datasets/kitti_eval_1/save_images/' + '/' + str(i).zfill(6) + '.jpg')
+
+def save_nyu_indoor_images(folder):
+    dirlist = sorted(os.listdir(folder))
+    step = 0
+    for seq in dirlist:
+        image_path = folder + '/' + seq
+        image = Image.open(image_path).crop((0, 0, 640, 480))
+        image.save('/home/nod/tmp/' + str(step).zfill(6) + '.jpg')
+        step += 1
+
+def viz_resize(folder):
+    dirlist = sorted(os.listdir(folder))
+    step = 0
+    for seq in dirlist:
+        image_path = folder + '/' + seq
+        image = Image.open(image_path).resize((320, 240))
+        image_dist = Image.open(image_path).resize((320, 200))
+
+        plt.imshow(np.vstack((np.array(image), np.array(image_dist))))
+        plt.show(block=True)
+
+def read_process_nyu_data(path):
+    hf = h5py.File(path, 'r')
+    images = np.array(hf.get('images'))
+    depths = np.array(hf.get('depths'))
+
+    return images, depths
+
+def generate_pointcloud(rgb, depth, intrinsics, ply_file=None):
+    points = []
+    fx = intrinsics[0, 0]
+    fy = intrinsics[1, 1]
+    cx = intrinsics[0, 2]
+    cy = intrinsics[1, 2]
+    for v in range(rgb.shape[0]):
+        for u in range(rgb.shape[1]):
+            color = rgb[v, u, :]
+            Z = depth[v, u]
+            if Z==0:
+                continue
+            X = (u - cx) * Z / fx
+            Y = (v - cy) * Z / fy
+            points.append("%f %f %f %d %d %d 0\n"%(X,Y,Z,color[0],color[1],color[2]))
+    file = open(ply_file,"w")
+    file.write('''ply
+                format ascii 1.0
+                element vertex %d
+                property float x
+                property float y
+                property float z
+                property uchar red
+                property uchar green
+                property uchar blue
+                property uchar alpha
+                end_header
+                %s
+                '''%(len(points),"".join(points)))
+    file.close()
+
+def generate_pc_nyudepth(input_folder, output_folder):
+    P_rect = np.eye(3, 3)
+    P_rect[0,0] = 5.1885790117450188e+02
+    P_rect[0,2] = 3.2558244941119034e+02
+    P_rect[1,1] = 5.1946961112127485e+02
+    P_rect[1,2] = 2.5373616633400465e+02
+
+    build_output_dir(output_folder)
+    dirlist = sorted(os.listdir(input_folder))
+    step = 0
+    for seq in dirlist:
+        print('Processing idx: ', step)
+        data_path = input_folder + '/' + seq
+        data = open(data_path,"rb")
+        data_dict = pickle.load(data)
+
+        rgb = data_dict['rgb']
+        depth_pred = data_dict['depth_pred'] * 2.82
+        depth_gt = data_dict['depth_gt']
+
+        pc_pred_path = output_folder + '/' + str(step).zfill(6) + '.ply'
+        pc_gt_path = output_folder + '/' + str(step).zfill(6) + '_gt.ply'
+        pc_pred = generate_pointcloud(rgb, depth_pred, P_rect, ply_file=pc_pred_path)
+        pc_gt = generate_pointcloud(rgb, depth_gt, P_rect, ply_file=pc_gt_path)
+        step += 1
+
+def build_output_dir(output_dir):
+    try:
+        os.makedirs(output_dir, exist_ok=False)
+    except:
+        os.makedirs(output_dir, exist_ok=True)
+
+    return output_dir
+
 if __name__ == "__main__":
     # resave_imu_data()
     # plot_acc_data('/home/jiatian/dataset/office_kitchen_0001a')
     # plot_imu_traj('/home/jiatian/dataset/office_kitchen_0001a')
     # read_amazon_data('/home/jiatian/dataset/amazon/raw_data/000001.pkl')
     # vis_float_image('/home/jiatianwu/eval/eval_res')
-    vis_zcu_image('/home/jiatianwu/project/vitis-ai/nod_depth/saved_data/rgbd_tflite_vitis_data')
+    # vis_zcu_image('/home/jiatianwu/project/vitis-ai/nod_depth/saved_data/rgbd_tflite_vitis_data')
     # process_tello('/home/jiatianwu/dataset/tello')
     # vis_pickle_image('/home/jiatianwu/000001.pkl')
+    # vis_folder(folder='/home/nod/lyft_kitti/train/image_2')
+    # vis_image('/home/nod/datasets/lyft/raw_data/000000/000000_9ccf7db5e9d2ab8847906a7f086aa7c0c189efecfe381d9120bf02c7de6907b9.png')
+    # rename_folder('/home/nod/datasets/lyft/raw_data')
+    # plot_trajectory('/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/poses_log.pickle')
+    # vis_depth_pose('/home/nod/datasets/kitti_eval/2011_09_26_drive_0022_sync_02', '/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/')
+    # save_nyu_indoor_images('/home/nod/nod/nod/src/apps/nod_depth/saved_data/indoor_eval_res')
+    # viz_resize('/home/nod/datasets/nod/images0')
+    # read_process_nyu_data('/home/nod/datasets/nyudepthV2/nyu_depth_v2_labeled.mat')
+    generate_pc_nyudepth('/home/nod/datasets/nyudepthV2/eval_res_data_gray', '/home/nod/datasets/nyudepthV2/eval_res_pc_gray')

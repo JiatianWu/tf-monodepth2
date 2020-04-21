@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from matplotlib import cm
+import torch
 
 def dict_update(d, u):
     """Improved update for nested dictionaries.
@@ -484,3 +485,138 @@ def load_resnet18_from_file(res18_file):
         #assign_op = v.assign(res18_weights[v.op.name])
         assign_ops.append(assign_op)
     return assign_ops
+
+def dump_xyz(source_to_target_transformations):
+    xyzs = []
+    cam_to_world = np.eye(4)
+    xyzs.append(cam_to_world[:3, 3])
+    for source_to_target_transformation in source_to_target_transformations:
+        cam_to_world = np.dot(cam_to_world, source_to_target_transformation[0, :, :])
+        xyzs.append(cam_to_world[:3, 3])
+    return xyzs
+
+def transformation_from_parameters(axisangle, translation, invert=False):
+    """Convert the network's (axisangle, translation) output into a 4x4 matrix
+    """
+    R = rot_from_axisangle(axisangle)
+    t = translation.clone()
+
+    if invert:
+        R = R.transpose(1, 2)
+        t *= -1
+
+    T = get_translation_matrix(t)
+
+    if invert:
+        M = torch.matmul(R, T)
+    else:
+        M = torch.matmul(T, R)
+
+    return M
+
+
+def get_translation_matrix(translation_vector):
+    """Convert a translation vector into a 4x4 transformation matrix
+    """
+    T = torch.zeros(translation_vector.shape[0], 4, 4).to(device=translation_vector.device)
+
+    t = translation_vector.contiguous().view(-1, 3, 1)
+
+    T[:, 0, 0] = 1
+    T[:, 1, 1] = 1
+    T[:, 2, 2] = 1
+    T[:, 3, 3] = 1
+    T[:, :3, 3, None] = t
+
+    return T
+
+
+def rot_from_axisangle(vec):
+    """Convert an axisangle rotation into a 4x4 transformation matrix
+    (adapted from https://github.com/Wallacoloo/printipi)
+    Input 'vec' has to be Bx1x3
+    """
+    angle = torch.norm(vec, 2, 2, True)
+    axis = vec / (angle + 1e-7)
+
+    ca = torch.cos(angle)
+    sa = torch.sin(angle)
+    C = 1 - ca
+
+    x = axis[..., 0].unsqueeze(1)
+    y = axis[..., 1].unsqueeze(1)
+    z = axis[..., 2].unsqueeze(1)
+
+    xs = x * sa
+    ys = y * sa
+    zs = z * sa
+    xC = x * C
+    yC = y * C
+    zC = z * C
+    xyC = x * yC
+    yzC = y * zC
+    zxC = z * xC
+
+    rot = torch.zeros((vec.shape[0], 4, 4)).to(device=vec.device)
+
+    rot[:, 0, 0] = torch.squeeze(x * xC + ca)
+    rot[:, 0, 1] = torch.squeeze(xyC - zs)
+    rot[:, 0, 2] = torch.squeeze(zxC + ys)
+    rot[:, 1, 0] = torch.squeeze(xyC + zs)
+    rot[:, 1, 1] = torch.squeeze(y * yC + ca)
+    rot[:, 1, 2] = torch.squeeze(yzC - xs)
+    rot[:, 2, 0] = torch.squeeze(zxC - ys)
+    rot[:, 2, 1] = torch.squeeze(yzC + xs)
+    rot[:, 2, 2] = torch.squeeze(z * zC + ca)
+    rot[:, 3, 3] = 1
+
+    return rot
+
+def eval_depth(pred_depth, gt_depth, min_depth, max_depth):
+    # Process ground truth depth
+    if gt_depth.dtype is np.dtype('uint16'):
+        gt_depth = gt_depth.astype(float) / 1000.
+
+    # Cover ratio
+    num_total_points = pred_depth.size
+    pred_depth_uncovered_value = pred_depth.max()
+    pred_depth_cover_ratio = np.float(np.count_nonzero(pred_depth != pred_depth_uncovered_value) / num_total_points)
+    gt_depth_uncovered_value = gt_depth.min()
+    gt_depth_cover_ratio = np.float(np.count_nonzero(gt_depth != gt_depth_uncovered_value) / num_total_points)
+
+    # Scalar matching
+    mask = np.logical_and(gt_depth > min_depth, gt_depth < max_depth)
+    scalar = np.mean(gt_depth[mask]) / np.mean(pred_depth[mask])
+    pred_depth[mask] *= scalar
+
+    pred_depth[pred_depth < min_depth] = min_depth
+    pred_depth[pred_depth > max_depth] = max_depth
+    abs_rel, sq_rel, rms, a1, a2, a3 = \
+        compute_errors(gt_depth[mask], pred_depth[mask])
+
+    res_dict = {'gt_depth_cover_ratio': int(gt_depth_cover_ratio*100),
+                'pred_depth_cover_ratio': int(pred_depth_cover_ratio*100),
+                'abs_rel': abs_rel,
+                'sq_rel': sq_rel,
+                'rms': rms,
+                'a1': a1,
+                'a2': a2,
+                'a3': a3,
+                'scalar': scalar}
+
+    return res_dict
+
+def compute_errors(gt, pred):
+    thresh = np.maximum((gt / pred), (pred / gt))
+    a1 = (thresh < 1.25   ).mean()
+    a2 = (thresh < 1.25 ** 2).mean()
+    a3 = (thresh < 1.25 ** 3).mean()
+
+    rmse = (gt - pred) ** 2
+    rmse = np.sqrt(rmse.mean())
+
+    abs_rel = np.mean(np.abs(gt - pred) / gt)
+
+    sq_rel = np.mean(((gt - pred)**2) / gt)
+
+    return abs_rel, sq_rel, rmse, a1, a2, a3
