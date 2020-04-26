@@ -5,7 +5,7 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 if __name__ == "__main__":
-    dataset_name = 'nod_device'
+    dataset_name = 'xilinx'
 
     if dataset_name == 'tello':
         config_path = 'config/monodepth2_tello.yml'
@@ -119,3 +119,10 @@ if __name__ == "__main__":
         dir_path = '/home/nod/datasets/nod/RB3/RB3_Demo_Record_15/nodvi/device/data/images0_undistorted'
         output_path = '/home/nod/datasets/nod/RB3/RB3_Demo_Record_15/nodvi/device/data/images0_depth'
         app.test_nod_dir(input_dir=dir_path, output_dir=output_path)
+    elif dataset_name == 'xilinx':
+        config_path = 'config/noddepth_xilinx_vga.yml'
+        with open(config_path, 'r') as f:
+            config = yaml.load(f)
+        app = SaveModel(config=config)
+        app.save_xilinx_pb(ckpt_dir='saved_model/ckpt_640_480/model-756002',
+                           pb_path ='saved_model/xilinx_640_480/saved_model.pb')
