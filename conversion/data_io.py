@@ -1,5 +1,6 @@
 from __future__ import division
 import os
+import sys
 import time
 import math
 import numpy as np
@@ -10,8 +11,8 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 from PIL import Image
 
-
-from conversion.bilateral_filter import bilateral_filter
+sys.path.append(os.path.abspath(os.path.join('..', 'utils')))
+from utils.bilateral_filter import bilateral_filter
 
 def build_output_dir(output_dir):
     try:

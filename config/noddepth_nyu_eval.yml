@@ -25,5 +25,5 @@ model:
     torch_res18_ckpt: '/home/jiatian/project/tf-monodepth2/res_model_extractor/resnet18.npy'
     summary_freq: 200
     pose_type: 'seperate' # seperate or shared
-    pb_path: '/home/nod/project/vitis-ai/mpsoc/vitis-ai-tool-example/tf_depth/vai_q_output_tmp/quantize_eval_model.pb'
+    pb_path: '/home/nod/project/tf-monodepth2/saved_model/ckpt_640_480/saved_model_new.pb'
     inference_ckpt: False

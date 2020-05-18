@@ -12,9 +12,9 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import open3d as o3d
 
-from utils.bilateral_filter import bilateral_filter
+from bilateral_filter import bilateral_filter
 from utils.tools import *
-from depth_engine import DepthEngine
+from depth_engine_xilinx import DepthEngine
 
 class App:
 
@@ -35,10 +35,10 @@ class App:
         if args.cpu:
             os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
-        config_path = 'config/noddepth_nyu_eval.yml'
+        datasource_path = '/home/nod/datasets/nyudepthV2/nyu_depth_v2_labeled.mat'
+        config_path = 'config/noddepth_xilinx_vga.yml'
 
-        datasource_path = '/home/nod/datasets/nyudepthV2/rgbd_data_gt'
-        self.setup_datasource(datasource_path, eval=False)
+        self.setup_datasource(datasource_path)
 
         with open(config_path, 'r') as f:
             config = yaml.load(f)
@@ -49,48 +49,44 @@ class App:
         self.crop_corner = (160, 0) # (x, y)
         self.crop_size = (960, 720) # (width, height)
 
-        self.cr_gt = []
-        self.cr_pred = []
-        self.rmse_99 = []
-        self.rmse_95 = []
+        self.rmse = []
         self.abs_rel = []
         self.sq_rel = []
         self.scalar = []
 
-    def setup_datasource(self, path, eval=False):
-        self.folder_path = path
-        self.batch_size = len(os.listdir(path))
+    def setup_datasource(self, path):
+        f = h5py.File(path)
+        for k, v in f.items():
+            if k == 'depths':
+                self.depth_source = np.array(v)
+
+            if k == 'images':
+                self.image_source = np.array(v)
+
+        assert(self.depth_source.shape[0] == self.image_source.shape[0])
+        self.batch_size = self.depth_source.shape[0]
 
     def get_datasource(self, idx=None):
         if idx < self.batch_size:
-            data_path = self.folder_path + '/' + str(idx).zfill(6) + '.pkl'
-            data = open(data_path,"rb")
-            data_dict = pickle.load(data)
-            image = data_dict['rgb']
-            depth = data_dict['depth_gt']
+            image = self.image_source[idx]
+            depth = self.depth_source[idx]
+
+            image = np.transpose(image, (2, 1, 0))
+            depth = np.transpose(depth, (1, 0))
 
             return [image, depth]
         else:
             self.flag_exit = True
             return None
 
-    def save_rgbd_data(self, rgb, depth, depth_gt=None, idx=None):
-        data_dict = {'rgb': rgb, 'depth': depth, 'depth_gt':depth_gt}
-        data_file_name = 'saved_data/rgbd_data_nyu/' + str(idx).zfill(6) + '.pkl'
+    def save_rgbd_data(self, rgb, depth, idx):
+        data_dict = {'rgb': rgb, 'depth': depth}
+        data_file_name = 'saved_data/rgbd_data/' + str(idx).zfill(6) + '.pkl'
         f = open(data_file_name,"wb")
         pickle.dump(data_dict,f)
         f.close()
 
-    def get_pred_depth(self, idx):
-        folder_path = '/home/nod/datasets/nyudepthV2/rgbd_data_nyu'
-        data_path = folder_path + '/' + str(idx).zfill(6) + '.pkl'
-        data = open(data_path,"rb")
-        data_dict = pickle.load(data)
-        depth = data_dict['depth']
-
-        return depth
-
-    def preprocess_image(self, image):
+    def preprocess_image(self, image, preprocess=False):
         color_image = Image.fromarray(image)
         if color_image.size != self.output_size:
             color_image = color_image.crop(box=(self.crop_corner[0],
@@ -98,15 +94,14 @@ class App:
                                                 self.crop_corner[0] + self.crop_size[0],
                                                 self.crop_corner[1] + self.crop_size[1]))
             color_image = color_image.resize(self.output_size)
-        
-        debug = False
-        if debug:
+
+        if preprocess:
             color_image = (np.array(color_image, dtype=np.float) / 255 - 0.45) / 0.255
 
         return np.array(color_image)
 
     def get_metrics(self, depth_map, depth_map_gt):
-        res_dict = eval_depth_nod(depth_map, depth_map_gt, self.depth_engine.min_depth, self.depth_engine.max_depth)
+        res_dict = eval_depth(depth_map, depth_map_gt, self.depth_engine.min_depth, self.depth_engine.max_depth)
         s_gt_cover_ratio = 'Kinect depth cover ratio: ' + str(res_dict['gt_depth_cover_ratio']) + '%\n'
         s_pred_cover_ratio = 'Nod depth cover ratio: ' + str(res_dict['pred_depth_cover_ratio']) + '%\n'
         if self.show_cover_ratio_only:
@@ -115,30 +110,23 @@ class App:
             return s_viz
 
         s_abs_rel = 'Absolute relative error: ' + '{:f}'.format(res_dict['abs_rel']) + '\n'
-        s_sq_rel = 'Square relative error: ' + '{:f}'.format(res_dict['sq_rel']) + 'm\n'
-        s_rms_99 = '99% Root mean squred error: ' + '{:f}'.format(res_dict['rms_99']) + 'm\n'
-        s_rms_95 = '95% Root mean squred error: ' + '{:f}'.format(res_dict['rms_95']) + 'm\n'
-        s_viz = s_gt_cover_ratio + s_pred_cover_ratio + s_abs_rel + s_sq_rel + s_rms_99 + s_rms_95
+        s_sq_rel = 'Square relative error: ' + '{:f}'.format(res_dict['sq_rel']) + '\n'
+        s_rms = 'Root mean squred error: ' + '{:f}'.format(res_dict['rms']) + '\n'
+        s_viz = s_gt_cover_ratio + s_pred_cover_ratio + s_abs_rel + s_sq_rel + s_rms
 
-        self.cr_gt.append(res_dict['gt_depth_cover_ratio'])
-        self.cr_pred.append(res_dict['pred_depth_cover_ratio'])
-        self.rmse_99.append(res_dict['rms_99'])
-        self.rmse_95.append(res_dict['rms_95'])
+        self.rmse.append(res_dict['rms'])
         self.abs_rel.append(res_dict['abs_rel'])
-        self.sq_rel.append(res_dict['sq_rel'])
+        self.abs_rel.append(res_dict['sq_rel'])
         self.scalar.append(res_dict['scalar'])
 
         return s_viz
 
     def stats_print(self):
         print('----------------------------------------------------------------------------')
-        print('RMSE 99%:', np.mean(self.rmse_99))
-        print('RMSE 95%:', np.mean(self.rmse_95))
+        print('RMSE:', np.mean(self.rmse))
         print('ABS_REL:', np.mean(self.abs_rel))
         print('SQ_REL:', np.mean(self.sq_rel))
         print('SCALAR:', np.mean(self.scalar), '       ', np.std(self.scalar))
-        print('CR_GT:', np.mean(self.cr_gt))
-        print('CR_PRED:', np.mean(self.cr_pred))
         print('----------------------------------------------------------------------------')
 
     def handle_close(self, evt):
@@ -156,40 +144,35 @@ class App:
                 continue
 
             rgb = datasource[0]
-            depth = datasource[1]
+            depth = datasource[1]     
 
-            rgb_image = self.preprocess_image(rgb)
-            depth_map_gt = self.preprocess_image(depth)
+            rgb_image = self.preprocess_image(rgb, preprocess=True)
+            depth_map_gt = self.preprocess_image(depth, preprocess=False)
             depth_image_gt = vis_depth(depth_map_gt)
 
             start = time.time()
-            if self.eval is False:
-                depth_map = self.depth_engine.estimate_depth(rgb_image)
-                if self.enable_filter:
-                    depth_map = bilateral_filter(rgb_image, depth_map)
-            else:
-                depth_map = self.get_pred_depth(idx)
+            depth_map = self.depth_engine.estimate_depth(rgb_image)
             print(time.time() - start)
+            if self.enable_filter:
+                depth_map = bilateral_filter(rgb_image, depth_map)
             depth_image = vis_depth(depth_map)
 
             if self.save_data:
-                self.save_rgbd_data(rgb_image, depth_map, idx)
+                self.save_rgbd_data(rgb, depth_image, idx)
 
             toshow_image = np.hstack((rgb, depth_image, depth_image_gt))
 
-            # Image.fromarray(toshow_image).save('saved_data/' + str(idx).zfill(6) + '.jpg')
-            # SCALAR: 0.002505729166737338         0.0006581630449547821
-            s_viz = self.get_metrics(depth_map, depth_map_gt)
-            # plt.imshow(toshow_image)
-            # plt.text(0, -56, s_viz, fontsize=16)
-            # plt.axis('off')
-            # plt.title('    Kinect Raw Input                                         Nod Depth                    Kinect Depth with hole completion', fontsize=20, loc='left')
-            # plt.show(block=False)
-
-            # plt.pause(1)
-            # plt.savefig('/home/nod/datasets/nyudepthV2/eval_metrics/' + str(idx).zfill(6) + '.jpg')
-            # plt.clf()
             idx += 1
+            Image.fromarray(toshow_image).save('saved_data/eval_quant/' + str(idx).zfill(6) + '.jpg')
+            s_viz = self.get_metrics(depth_map, depth_map_gt)
+            plt.imshow(toshow_image)
+            plt.text(0, 0, s_viz, fontsize=24)
+            plt.axis('off')
+            plt.title('Nod Depth', fontsize=32)
+            plt.show(block=False)
+
+            plt.pause(0.001)
+            plt.clf()
 
         plt.close()
         self.stats_print()
@@ -241,12 +224,3 @@ if __name__ == '__main__':
     print(tf.__version__)
     v = App(args)
     v.run()
-
-    # Eval results
-    # RMSE 99%: 0.5507934972873145
-    # RMSE 95%: 0.47595251564074165
-    # ABS_REL: 0.17021551190086803
-    # SQ_REL: 0.13642955870286524
-    # SCALAR: 0.002505729166737338         0.0006581630449547821
-    # CR_GT: 99.0
-    # CR_PRED: 99.0

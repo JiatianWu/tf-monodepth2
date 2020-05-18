@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from matplotlib import cm
+import matplotlib as mpl
 import torch
 
 def dict_update(d, u):
@@ -30,6 +31,26 @@ def disp_to_depth(disp, min_depth, max_depth):
     scaled_disp = tf.to_float(min_disp) + tf.to_float(max_disp - min_disp) * disp
     depth = tf.to_float(1.) / scaled_disp
     return depth
+
+def disp_to_depth_np(disp, min_depth, max_depth):
+    min_disp = 1. / max_depth
+    max_disp = 1. / min_depth
+    scaled_disp = np.float(min_disp) + np.float(max_disp - min_disp) * disp
+    depth = 1.0 / scaled_disp
+    return depth
+
+def vis_depth(depth_map, percent=90):
+    if depth_map is None:
+        return None
+
+    vmax = np.percentile(depth_map, percent)
+    vmin = depth_map.min()
+    normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    mapper = mpl.cm.ScalarMappable(norm=normalizer, cmap='viridis')
+
+    colormapped_im = (mapper.to_rgba(depth_map)[:, :, :3][:,:,::-1] * 255).astype(np.uint8)
+
+    return colormapped_im[:, :, ::-1]
 
 def colorize(value, vmin=None, vmax=None, cmap=None):
     # normalize
@@ -581,8 +602,11 @@ def eval_depth(pred_depth, gt_depth, min_depth, max_depth):
     num_total_points = pred_depth.size
     pred_depth_uncovered_value = pred_depth.max()
     pred_depth_cover_ratio = np.float(np.count_nonzero(pred_depth != pred_depth_uncovered_value) / num_total_points)
-    gt_depth_uncovered_value = gt_depth.min()
-    gt_depth_cover_ratio = np.float(np.count_nonzero(gt_depth != gt_depth_uncovered_value) / num_total_points)
+    gt_depth_uncovered_value_min = gt_depth.min()
+    gt_depth_uncovered_value_max = gt_depth.max()
+    gt_depth_uncovered_number = np.count_nonzero( gt_depth != gt_depth_uncovered_value_min)
+                                    # np.count_nonzero( gt_depth == gt_depth_uncovered_value_max)
+    gt_depth_cover_ratio = np.float( gt_depth_uncovered_number / num_total_points)
 
     # Scalar matching
     mask = np.logical_and(gt_depth > min_depth, gt_depth < max_depth)
@@ -620,3 +644,65 @@ def compute_errors(gt, pred):
     sq_rel = np.mean(((gt - pred)**2) / gt)
 
     return abs_rel, sq_rel, rmse, a1, a2, a3
+
+def eval_depth_nod(pred_depth, gt_depth, min_depth, max_depth):
+    # Process ground truth depth
+    if gt_depth.dtype is np.dtype('uint16'):
+        gt_depth = gt_depth.astype(float) / 1000.
+
+    # Cover ratio
+    num_total_points = pred_depth.size
+    pred_depth_uncovered_value = pred_depth.max()
+    pred_depth_cover_ratio = np.float(np.count_nonzero(pred_depth != pred_depth_uncovered_value) / num_total_points)
+    gt_depth_uncovered_value_min = gt_depth.min()
+    gt_depth_uncovered_value_max = gt_depth.max()
+    # for kinect, realsense
+    # gt_depth_uncovered_number = np.count_nonzero( gt_depth != gt_depth_uncovered_value_min)
+    #                                 # np.count_nonzero( gt_depth == gt_depth_uncovered_value_max)
+    # for sgm
+    gt_depth_uncovered_number = np.count_nonzero( gt_depth != gt_depth_uncovered_value_max)
+                                    # np.count_nonzero( gt_depth == gt_depth_uncovered_value_max)
+    gt_depth_cover_ratio = np.float( gt_depth_uncovered_number / num_total_points)
+
+    # Scalar matching
+    mask = np.logical_and(gt_depth > min_depth, gt_depth < max_depth)
+    scalar = np.mean(gt_depth[mask]) / np.mean(pred_depth[mask])
+    pred_depth[mask] *= scalar
+
+    pred_depth[pred_depth < min_depth] = min_depth
+    pred_depth[pred_depth > max_depth] = max_depth
+    abs_rel, sq_rel, rms_99, rms_95, a1, a2, a3 = \
+        compute_errors_nod(gt_depth[mask], pred_depth[mask])
+
+    res_dict = {'gt_depth_cover_ratio': int(gt_depth_cover_ratio*100),
+                'pred_depth_cover_ratio': int(pred_depth_cover_ratio*100),
+                'abs_rel': abs_rel,
+                'sq_rel': sq_rel,
+                'rms_99': rms_99,
+                'rms_95': rms_95,
+                'a1': a1,
+                'a2': a2,
+                'a3': a3,
+                'scalar': scalar}
+
+    return res_dict
+
+def compute_errors_nod(gt, pred):
+    thresh = np.maximum((gt / pred), (pred / gt))
+    a1 = (thresh < 1.25   ).mean()
+    a2 = (thresh < 1.25 ** 2).mean()
+    a3 = (thresh < 1.25 ** 3).mean()
+
+    rmse = (gt - pred) ** 2
+    rmse_value_99 = np.percentile(rmse, 99)
+    rmse_value_95 = np.percentile(rmse, 95)
+    rmse_99_mask = rmse < rmse_value_99
+    rmse_95_mask = rmse < rmse_value_95
+    rmse_99 = np.sqrt(rmse[rmse_99_mask].mean())
+    rmse_95 = np.sqrt(rmse[rmse_95_mask].mean())
+
+    abs_rel = np.mean(np.abs(gt - pred) / gt)
+
+    sq_rel = np.mean(((gt - pred)**2) / gt)
+
+    return abs_rel, sq_rel, rmse_99, rmse_95, a1, a2, a3

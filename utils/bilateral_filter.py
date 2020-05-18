@@ -1,7 +1,6 @@
 #Copyright 2020 Nod Labs
 import matplotlib.pyplot as plt
 import os
-import time
 import numpy as np
 import pickle
 from scipy.sparse import csr_matrix
@@ -25,14 +24,14 @@ YUV_OFFSET = np.array([0, 128.0, 128.0]).reshape(1, 1, -1)
 grid_params = {
     'sigma_luma' : 4, # Brightness bandwidth
     'sigma_chroma': 4, # Color bandwidth
-    'sigma_spatial': 8 # Spatial bandwidth
+    'sigma_spatial': 6 # Spatial bandwidth
 }
 
 bs_params = {
     'lam': 128, # The strength of the smoothness parameter
     'A_diag_min': 1e-5, # Clamp the diagonal of the A diagonal in the Jacobi preconditioner.
-    'cg_tol': 1e-5, # The tolerance on the convergence in PCG
-    'cg_maxiter': 25 # The number of PCG iterations
+    'cg_tol': 1e-6, # The tolerance on the convergence in PCG
+    'cg_maxiter': 50 # The number of PCG iterations
 }
 
 def rgb2yuv(im):
@@ -160,24 +159,55 @@ class BilateralSolver(object):
         xhat = self.grid.slice(yhat)
         return xhat
 
+def rgb_gray(rgb):
+    rgb_16 = np.array(rgb, np.uint16)
+    gray = (rgb_16[:, :, 0] + rgb_16[:, :, 1] + rgb_16[:, :, 2]) / 3
+
+    return gray
+
 def bilateral_filter(reference, target):
     im_shape = reference.shape[:2]
-    target_min = target.min()
-    # import pdb; pdb.set_trace()
-    # target = np.uint16((target - target_min) * 65535)
     target = np.uint16(target*1000)
-    confidence = np.ones(target.shape, dtype=np.uint16) * 65535
 
-    # mask = np.where(target==target.max())
-    # num = len(mask[0])
-    # for i in range(num):
-    #     confidence[mask[0][i], mask[1][i]] = 1
+    # ref_gray = rgb_gray(reference)
+    # confidence = np.ones(target.shape, dtype=np.uint16) * 32768
 
-    grid = BilateralGrid(reference, **grid_params)
-    t = target.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
-    c = confidence.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
-    start = time.time()
-    output_solver = BilateralSolver(grid, bs_params).solve(t, c).reshape(im_shape)
-    print('BF solve takes: ', time.time() - start)
+    default_mode = False
+    if default_mode:
+        confidence = np.ones(target.shape, dtype=np.uint16) * 65536
+        grid_params['sigma_spatial'] = 6
+        grid = BilateralGrid(reference, **grid_params)
+        t = target.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
+        c = confidence.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
+        output_solver = BilateralSolver(grid, bs_params).solve(t, c).reshape(im_shape)
+        output_solver *= (pow(2, 16) -1)
 
-    return output_solver
+        return output_solver
+    else:
+        solver_list = []
+
+        confidence = np.ones(target.shape, dtype=np.uint16) * 65536
+        for spa in range(4, 12, 2):
+            grid_params['sigma_spatial'] = spa
+            grid = BilateralGrid(reference, **grid_params)
+            t = target.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
+            c = confidence.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
+            output_solver = BilateralSolver(grid, bs_params).solve(t, c).reshape(im_shape)
+            solver_list.append(output_solver)
+
+        # confidence = np.ones(target.shape, dtype=np.uint16)
+        # for spa in range(4, 12, 2):
+        #     grid_params['sigma_spatial'] = spa
+        #     grid = BilateralGrid(reference, **grid_params)
+        #     t = target.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
+        #     c = confidence.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
+        #     output_solver = BilateralSolver(grid, bs_params).solve(t, c).reshape(im_shape)
+        #     solver_list.append(output_solver)
+    
+        mean_sol = np.zeros(target.shape, dtype=np.float)
+        for sol in solver_list:
+            mean_sol += sol
+
+        output_solver = mean_sol / len(solver_list) * (pow(2, 16) -1)
+
+        return output_solver

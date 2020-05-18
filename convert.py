@@ -119,10 +119,24 @@ if __name__ == "__main__":
         dir_path = '/home/nod/datasets/nod/RB3/RB3_Demo_Record_15/nodvi/device/data/images0_undistorted'
         output_path = '/home/nod/datasets/nod/RB3/RB3_Demo_Record_15/nodvi/device/data/images0_depth'
         app.test_nod_dir(input_dir=dir_path, output_dir=output_path)
+    elif dataset_name == 'xilinx_postprocess':
+        config_path = 'config/noddepth_xilinx_vga.yml'
+        with open(config_path, 'r') as f:
+            config = yaml.load(f)
+        app = SaveModel(config=config)
+        app.save_xilinx_pb_postprocess(ckpt_dir='saved_model/xilinx_640_480/model-756002',
+                                       pb_path ='saved_model/xilinx_640_480/saved_model.pb')
+    elif dataset_name == 'xilinx_nosigmoid':
+        config_path = 'config/noddepth_xilinx_vga.yml'
+        with open(config_path, 'r') as f:
+            config = yaml.load(f)
+        app = SaveModel(config=config)
+        app.save_xilinx_pb_postprocess_nosigmoid(ckpt_dir='saved_model/xilinx_640_480/model-756002',
+                                                 pb_path ='saved_model/xilinx_640_480/saved_model_nosigmoid.pb')
     elif dataset_name == 'xilinx':
         config_path = 'config/noddepth_xilinx_vga.yml'
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.save_xilinx_pb(ckpt_dir='saved_model/ckpt_640_480/model-756002',
-                           pb_path ='saved_model/xilinx_640_480/saved_model.pb')
+        app.save_xilinx_pb(ckpt_dir='saved_model/xilinx_640_480/model-2268002',
+                           pb_path ='saved_model/xilinx_640_480/saved_model_xilinx.pb')
