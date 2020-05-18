@@ -86,6 +86,11 @@ class Undistort():
         # self.compute_params(480, 640)
 
         # device 35-1 cam 0
+        # new_K:
+        # fx = 238.52264234
+        # fy = 238.15329999
+        # cx = 332.14860019
+        # cy = 195.73207196
         scale = 1.0
         fx = 286.92994997677204
         fy = 286.4856509324264

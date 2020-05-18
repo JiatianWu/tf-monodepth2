@@ -49,9 +49,9 @@ if dataset_name == 'nod':
     parser.add_argument("--img_height", type=int, default=480, help="image height")
     parser.add_argument("--img_width", type=int, default=640, help="image width")
     parser.add_argument("--num_threads", type=int, default=16, help="number of threads to use")
-    parser.add_argument("--dataset_dir", type=str, default='/home/nod/datasets/nod/undistorted/', help="where the dataset is stored")
+    parser.add_argument("--dataset_dir", type=str, default='/home/jiatian/dataset/nod_device/images0/', help="where the dataset is stored")
     parser.add_argument("--dataset_name", type=str, default='nod', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello", "nyu"])
-    parser.add_argument("--dump_root", type=str, default='/home/nod/datasets/nod/train_data/', help="Where to dump the data")
+    parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/nod_device/images0_train_data/', help="Where to dump the data")
 
 args = parser.parse_args()
 
@@ -209,23 +209,16 @@ def main():
         sequences_number = len(os.listdir(args.dataset_dir))
         for id in range(sequences_number):
             print('Sequence id: ', id)
-            # data_loader = lyft_loader(args.dataset_dir,
-            #                     split='sequence',
-            #                     sequence_id=id,
-            #                     img_height=args.img_height,
-            #                     img_width=args.img_width,
-            #                     seq_length=args.seq_length)
-            # Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
-            # try:
-            #     data_loader = nod_loader(args.dataset_dir,
-            #                         split='sequence',
-            #                         sequence_id=id,
-            #                         img_height=args.img_height,
-            #                         img_width=args.img_width,
-            #                         seq_length=args.seq_length)
-            #     Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
-            # except:
-            #     print("ERROR in " + str(id))
+            try:
+                data_loader = nod_loader(args.dataset_dir,
+                                    split='sequence',
+                                    sequence_id=id,
+                                    img_height=args.img_height,
+                                    img_width=args.img_width,
+                                    seq_length=args.seq_length)
+                Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+            except:
+                print("ERROR in " + str(id))
 
     # Split into train/val
     np.random.seed(8964)
