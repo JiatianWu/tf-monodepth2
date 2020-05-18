@@ -7,7 +7,7 @@ import logging
 
 
 from utils.std_capturing import *
-from model.monodepth2_learner import MonoDepth2Learner
+from model_xilinx.monodepth2_learner import MonoDepth2Learner
 
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
