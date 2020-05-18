@@ -148,7 +148,10 @@ class Undistort():
         for img in img_list:
             img_path = self.input_dir + img
             img_data = cv2.imread(img_path,  cv2.IMREAD_UNCHANGED)
-            img_undistorted = self.run(img_data)
+            try:
+                img_undistorted = self.run(img_data)
+            except:
+                continue
             img_path_output = self.output_dir + img
 
             # img_final = cv2.resize(img_undistorted, (1280, 800), interpolation = cv2.INTER_AREA)
@@ -159,7 +162,18 @@ class Undistort():
             print(img)
 
 if __name__ == "__main__":
-    input_dir = '/home/nod/tmp/'
-    output_dir = '/home/nod/tmp_undistort/'
-    instance = Undistort(input_dir, output_dir)
-    instance.undistort()
+    input_dirlist = ['/noddata/sneha/0429_1_JiatianSets/0429_LH_TM_MM_OfficeSyncSpace_2/home/sneha/ssd/0429_LH_TM_MM_OfficeSyncSpace_2/nodvi/device/data/images0/',
+                     '/noddata/sneha/0429_1_JiatianSets/0429_LH_TM_MM_OfficeCommonSpace_3/home/sneha/ssd/0429_LH_TM_MM_OfficeCommonSpace_3/nodvi/device/data/images0/',
+                      '/noddata/sneha/0429_1_JiatianSets/0429_LH_TM_MM_OfficeKitchen_4/home/sneha/ssd/0429_LH_TM_MM_OfficeKitchen_4/nodvi/device/data/images0/',
+                      '/noddata/sneha/0429_1_JiatianSets/0429_LH_TM_MM_DemoRoom_5/home/sneha/ssd/0429_LH_TM_MM_DemoRoom_5/nodvi/device/data/images0/']
+    output_dirlist = ['/home/jiatian/dataset/nod_device/scene_2/images0/',
+                      '/home/jiatian/dataset/nod_device/scene_3/images0/',
+                      '/home/jiatian/dataset/nod_device/scene_4/images0/',
+                      '/home/jiatian/dataset/nod_device/scene_5/images0/']
+    input_dir = '/noddata/sneha/0429_1_JiatianSets/0429_LH_TM_MM_OfficeMyDesk_1/nodvi/device/data/images0/'
+    output_dir = '/home/jiatian/dataset/nod_device/scene_1/images0/'
+    for idx in range(0, 4):
+        input_dir = input_dirlist[idx]
+        output_dir = output_dirlist[idx]
+        instance = Undistort(input_dir, output_dir)
+        instance.undistort()
