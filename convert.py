@@ -5,7 +5,7 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 if __name__ == "__main__":
-    dataset_name = 'xilinx'
+    dataset_name = 'kitti'
 
     if dataset_name == 'tello':
         config_path = 'config/monodepth2_tello.yml'
@@ -86,7 +86,9 @@ if __name__ == "__main__":
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.build_restore_model(ckpt_dir='saved_model/ckpt_tf_monodepth2_640_192_pt/model.latest')
+        app.save_orig_pb(ckpt_dir='saved_model/ckpt_tf_monodepth2_640_192_pt/model.latest',
+                         pb_path='saved_model/ckpt_tf_monodepth2_640_192_pt/saved_model.pb')
+        # app.build_restore_model(ckpt_dir='saved_model/ckpt_tf_monodepth2_640_192_pt/model.latest')
 
         # drive_list = ['2011_09_26_drive_0091_sync_02', '2011_09_26_drive_0020_sync_02', '2011_09_26_drive_0022_sync_02']
         # root_dir = '/home/nod/datasets/kitti'
@@ -97,9 +99,9 @@ if __name__ == "__main__":
         #         output_path = output_dir + '/' + dir 
         #         app.test_dir_depth_pose(input_dir=dir_path,
         #                                 output_dir=output_path)
-        dir_path = '/home/nod/project/TrianFlow/data/demo'
-        output_path = '/home/nod/project/TrianFlow/data/eval'
-        app.test_dir(input_dir=dir_path, output_dir=output_path)
+        # dir_path = '/home/nod/project/TrianFlow/data/demo'
+        # output_path = '/home/nod/project/TrianFlow/data/eval'
+        # app.test_dir(input_dir=dir_path, output_dir=output_path)
 
     elif dataset_name == 'lyft':
         config_path = 'config/noddepth_lyft.yml'

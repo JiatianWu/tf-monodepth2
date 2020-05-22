@@ -56,6 +56,24 @@ class SaveModel(object):
         save_tflite_path = savedModel_dir + '/saved_model_quant.tflite'
         open(save_tflite_path, "wb").write(tflite_quant_model)
 
+    def build_orig_depth(self):
+        from model.net import Net
+
+        self.tgt_image_uint8 = tf.placeholder(tf.uint8, [1, self.img_height, self.img_width, 3], name='input')
+        with tf.name_scope('data_loading'):
+            tgt_image_float = tf.image.convert_image_dtype(self.tgt_image_uint8, dtype=tf.float32)
+        self.tgt_image_float = tf.identity(tgt_image_float, name='input_float')
+        tgt_image_net = self.preprocess_image(self.tgt_image_float)
+
+        # self.tgt_image_float = tf.placeholder(tf.float32, [None, self.img_height, self.img_width, 3], name='input')
+        with tf.variable_scope('monodepth2_model', reuse=tf.AUTO_REUSE) as scope:
+            net_builder = Net(False, **self.config)
+
+            res18_tc, skips_tc = net_builder.build_resnet18(tgt_image_net)
+            pred_disp = net_builder.build_disp_net(res18_tc, skips_tc)[0]
+
+        self.pred_disp = tf.identity(pred_disp, name='output')
+
     def build_depth(self):
         from model_new.net import Net
 
@@ -206,6 +224,36 @@ class SaveModel(object):
 
         if save_tflite:
             self.convert_savedModel_quant_tflite(savedModel_dir)
+
+    def save_orig_pb(self, ckpt_dir, pb_path):
+        from tensorflow.python.framework import graph_util
+
+        self.build_orig_depth()
+
+        var_list = [var for var in tf.global_variables() if "moving" in var.name]
+        var_list += tf.trainable_variables()
+        self.saver = tf.train.Saver(var_list, max_to_keep=10)
+
+        for var in tf.model_variables():
+            print(var)
+
+        if ckpt_dir == '':
+            print('No pretrained model provided, exit. ')
+            raise ValueError
+
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        input_node_names = ['input']
+        output_node_names = ['output']
+        with tf.Session(config=config) as sess:
+            print("load trained model")
+            self.saver.restore(sess, ckpt_dir)
+            graph = tf.get_default_graph()
+            input_graph_def = graph.as_graph_def()
+
+            output_graph_def = graph_util.convert_variables_to_constants(sess, input_graph_def, output_node_names)
+            with tf.gfile.GFile(pb_path, 'wb') as f:
+                f.write(output_graph_def.SerializeToString())
 
     def save_pb(self, ckpt_dir, pb_path):
         from tensorflow.python.framework import graph_util
