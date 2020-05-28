@@ -37,7 +37,7 @@ class App:
 
         config_path = 'config/noddepth_nyu_eval.yml'
 
-        datasource_path = '/home/nod/datasets/nyudepthV2/rgbd_data_gt'
+        datasource_path = '/home/nod/datasets/nyudepthV2/rgbd_gt_data'
         self.setup_datasource(datasource_path, eval=False)
 
         with open(config_path, 'r') as f:
@@ -53,9 +53,13 @@ class App:
         self.cr_pred = []
         self.rmse_99 = []
         self.rmse_95 = []
+        self.rmse_log = []
         self.abs_rel = []
         self.sq_rel = []
         self.scalar = []
+        self.a1 = []
+        self.a2 = []
+        self.a3 = []
 
     def setup_datasource(self, path, eval=False):
         self.folder_path = path
@@ -67,9 +71,9 @@ class App:
             data = open(data_path,"rb")
             data_dict = pickle.load(data)
             image = data_dict['rgb']
-            depth = data_dict['depth_gt']
+            depth_gt = data_dict['depth_gt']
 
-            return [image, depth]
+            return [image, depth_gt]
         else:
             self.flag_exit = True
             return None
@@ -82,11 +86,10 @@ class App:
         f.close()
 
     def get_pred_depth(self, idx):
-        folder_path = '/home/nod/datasets/nyudepthV2/rgbd_data_nyu'
-        data_path = folder_path + '/' + str(idx).zfill(6) + '.pkl'
+        data_path = self.folder_path + '/' + str(idx).zfill(6) + '.pkl'
         data = open(data_path,"rb")
         data_dict = pickle.load(data)
-        depth = data_dict['depth']
+        depth = data_dict['depth_pred']
 
         return depth
 
@@ -124,14 +127,22 @@ class App:
         self.cr_pred.append(res_dict['pred_depth_cover_ratio'])
         self.rmse_99.append(res_dict['rms_99'])
         self.rmse_95.append(res_dict['rms_95'])
+        self.rmse_log.append(res_dict['rms_log'])
         self.abs_rel.append(res_dict['abs_rel'])
         self.sq_rel.append(res_dict['sq_rel'])
         self.scalar.append(res_dict['scalar'])
+        self.a1.append(res_dict['a1'])
+        self.a2.append(res_dict['a2'])
+        self.a3.append(res_dict['a3'])
 
         return s_viz
 
     def stats_print(self):
         print('----------------------------------------------------------------------------')
+        print('A1:', np.mean(self.a1))
+        print('A2:', np.mean(self.a2))
+        print('A3:', np.mean(self.a3))
+        print('RMSE LOG:', np.mean(self.rmse_log))
         print('RMSE 99%:', np.mean(self.rmse_99))
         print('RMSE 95%:', np.mean(self.rmse_95))
         print('ABS_REL:', np.mean(self.abs_rel))
@@ -164,7 +175,9 @@ class App:
 
             start = time.time()
             if self.eval is False:
+                start = time.time()
                 depth_map = self.depth_engine.estimate_depth(rgb_image)
+                print('Inference takes: ', time.time() - start)
                 if self.enable_filter:
                     depth_map = bilateral_filter(rgb_image, depth_map)
             else:
@@ -175,7 +188,7 @@ class App:
             if self.save_data:
                 self.save_rgbd_data(rgb_image, depth_map, idx)
 
-            toshow_image = np.hstack((rgb, depth_image, depth_image_gt))
+            # toshow_image = np.hstack((rgb, depth_image, depth_image_gt))
 
             # Image.fromarray(toshow_image).save('saved_data/' + str(idx).zfill(6) + '.jpg')
             # SCALAR: 0.002505729166737338         0.0006581630449547821

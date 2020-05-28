@@ -368,6 +368,9 @@ def read_process_nyu_data(path):
     hf = h5py.File(path, 'r')
     images = np.array(hf.get('images'))
     depths = np.array(hf.get('depths'))
+
+    return images, depths
+
     batch_size = depths.shape[0]
     for idx in range(batch_size):
         image = images[idx]
@@ -418,7 +421,6 @@ def generate_pointcloud(rgb, depth, intrinsics=None, ply_file=None):
                 %s
                 '''%(len(points),"".join(points)))
     file.close()
-
 def generate_pc_nyudepth(input_folder, output_folder):
     P_rect = np.eye(3, 3)
     P_rect[0,0] = 5.1885790117450188e+02
@@ -436,12 +438,12 @@ def generate_pc_nyudepth(input_folder, output_folder):
         data_dict = pickle.load(data)
 
         rgb = data_dict['rgb']
-        depth_pred = data_dict['depth_pred'] * 2.82
+        depth_pred = data_dict['depth_pred'] * 0.002505729166737338 
         depth_gt = data_dict['depth_gt']
 
-        pc_pred_path = output_folder + '/' + str(step).zfill(6) + '.ply'
+        # pc_pred_path = output_folder + '/' + str(step).zfill(6) + '.ply'
         pc_gt_path = output_folder + '/' + str(step).zfill(6) + '_gt.ply'
-        generate_pointcloud(rgb, depth_pred, P_rect, ply_file=pc_pred_path)
+        # generate_pointcloud(rgb, depth_pred, P_rect, ply_file=pc_pred_path)
         generate_pointcloud(rgb, depth_gt, P_rect, ply_file=pc_gt_path)
         step += 1
 
@@ -643,6 +645,43 @@ def viz_rgbd(folder):
         plt.imshow(toshow_image)
         plt.show(block = True)
 
+def process_kitti_data(folder):
+    dirlist = sorted(os.listdir(folder))
+    for seq in dirlist:
+        seq_path = folder + '/' + seq
+        imglist = sorted(os.listdir(seq_path))
+        for file in imglist:
+            if '.jpg' in file:
+                image_path = seq_path + '/' + file
+                image = np.array(Image.open(image_path))[:, 640:1280, :]
+                Image.fromarray(image).save(image_path)
+
+def merge_pickle_data(folder_1, folder_2):
+    dirlist = sorted(os.listdir(folder_1))
+    for file in dirlist:
+        data_path_1 = folder_1 + '/' + file
+        data_path_2 = folder_2 + '/' + file
+
+        data_1 = open(data_path_1,"rb")
+        data_dict_1 = pickle.load(data_1)
+
+        rgb = data_dict_1['rgb']
+        depth_pred = data_dict_1['depth']
+
+        data_2 = open(data_path_2,"rb")
+        data_dict_2 = pickle.load(data_2)
+        depth_gt = data_dict_2['depth_gt']
+
+        data_dict = {'rgb':rgb,
+                     'depth_pred':depth_pred,
+                     'depth_gt': depth_gt}
+
+        dict_file_name = '/home/nod/datasets/nyudepthV2/rgbd_gt_data/' + file
+        f = open(dict_file_name,"wb")
+        pickle.dump(data_dict, f)
+        f.close()
+
+    import pdb; pdb.set_trace()
 
 if __name__ == "__main__":
     # resave_imu_data()
@@ -661,7 +700,7 @@ if __name__ == "__main__":
     # save_nyu_indoor_images('/home/nod/nod/nod/src/apps/nod_depth/saved_data/indoor_eval_res')
     # viz_resize('/home/nod/datasets/nod/images0')
     # read_process_nyu_data('/home/nod/datasets/nyudepthV2/nyu_depth_v2_labeled.mat')
-    # generate_pc_nyudepth('/home/nod/datasets/nyudepthV2/eval_res_data_gray', '/home/nod/datasets/nyudepthV2/eval_res_pc_gray')
+    generate_pc_nyudepth('/home/nod/datasets/nyudepthV2/rgbd_gt_data', '/home/nod/datasets/nyudepthV2/pc_gt')
     # crop_folder('/home/nod/tmp', '/home/nod/tmp_2')
     # readmat('/home/nod/Downloads/splits.mat')
     # save_nyu_eval_image('/home/nod/datasets/nyudepthV2/nyu_depth_v2_labeled.mat')
@@ -671,5 +710,8 @@ if __name__ == "__main__":
     # generate_pc_media_intrinsics('/home/nod/datasets/media/eval/eval_res_data', '/home/nod/datasets/media/eval/pc')
     # viz_rgbd('/home/nod/datasets/media/eval/eval_res_data')
     # vis_image_crop('/home/nod/datasets/weanhall/eval_metrics/001907.jpg')
-    crop_folder('/home/nod/datasets/weanhall/eval_metrics', '/home/nod/datasets/weanhall/eval_metrics_crop')
+    # crop_folder('/home/nod/datasets/weanhall/eval_metrics', '/home/nod/datasets/weanhall/eval_metrics_crop')
     # add_metrics_weanhall('/home/nod/datasets/weanhall/eval_model_data', '/home/nod/datasets/weanhall/eval_sgm_data', '/home/nod/datasets/weanhall/rectified')
+    # process_kitti_data('/home/nod/datasets/kitti/kitti_data')
+    # rename_folder_util('/home/nod/eval_res_nosigmoid_v2_nod')
+    # merge_pickle_data('/home/nod/datasets/nyudepthV2/rgbd_data', '/home/nod/datasets/nyudepthV2/rgb_gt_data')

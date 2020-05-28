@@ -5,7 +5,7 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 if __name__ == "__main__":
-    dataset_name = 'kitti'
+    dataset_name = 'lyft'
 
     if dataset_name == 'tello':
         config_path = 'config/monodepth2_tello.yml'
@@ -108,9 +108,11 @@ if __name__ == "__main__":
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.test_video(ckpt_dir='/home/nod/project/tf-monodepth2/saved_model/ckpt_tf_monodepth2_640_192_nopt/model.latest',
-                       input_dir='/home/nod/datasets/kitti/2011_09_26_drive_0106_sync_03',
-                       output_dir='/home/nod/datasets/kitti/eval_plasma')
+        app.save_orig_pb(ckpt_dir='saved_model/ckpt_lyft/0331/model-440066',
+                         pb_path='saved_model/ckpt_lyft/0331/saved_model.pb')
+        # app.test_video(ckpt_dir='/home/nod/project/tf-monodepth2/saved_model/ckpt_tf_monodepth2_640_192_nopt/model.latest',
+        #                input_dir='/home/nod/datasets/kitti/2011_09_26_drive_0106_sync_03',
+        #                output_dir='/home/nod/datasets/kitti/eval_plasma')
     elif dataset_name == 'nod_device':
         config_path = 'config/noddepth_nyu_fullRes.yml'
         with open(config_path, 'r') as f:
@@ -129,11 +131,11 @@ if __name__ == "__main__":
         app.save_xilinx_pb_postprocess(ckpt_dir='saved_model/xilinx_640_480/model-756002',
                                        pb_path ='saved_model/xilinx_640_480/saved_model.pb')
     elif dataset_name == 'xilinx_nosigmoid':
-        config_path = 'config/noddepth_xilinx_vga.yml'
+        config_path = 'config/noddepth_xilinx_halfvga.yml'
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.save_xilinx_pb_postprocess_nosigmoid(ckpt_dir='saved_model/xilinx_640_480/model-756002',
+        app.save_xilinx_pb_postprocess_nosigmoid(ckpt_dir='saved_model/xilinx_640_480/model-2268002',
                                                  pb_path ='saved_model/xilinx_640_480/saved_model_nosigmoid.pb')
     elif dataset_name == 'xilinx':
         config_path = 'config/noddepth_xilinx_vga.yml'

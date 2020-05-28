@@ -105,9 +105,9 @@ class DepthEstimation():
         print('----------------------------------------------------------------------------')
 
 if __name__ == '__main__':
-    model_file = 'saved_model/tflite_320_240_bilinear/saved_model_quant_edgetpu.tflite'
-    width = 320 #256
-    height = 240 #192
+    model_file = 'saved_model/tflite_640_480_bilinear/saved_model_quant_edgetpu.tflite'
+    width = 640 #256
+    height = 480 #192
     input_size = (width, height) # (width, height)
     hardware = 'edgetpu'
     min_depth = 0.1
@@ -181,26 +181,28 @@ if __name__ == '__main__':
         image = np.transpose(image_source[step], (2, 1, 0))
         depth = np.transpose(depth_source[step], (1, 0))
 
-        image = process_image_eval_tflite_nod(image, width, height, scale=0.5)
+        image = process_image_eval_tflite_nod(image, width, height, scale=1.0)
         disp_map = depth_estimator.EstimateDisp(image)
         disp_map = np.array(disp_map, dtype=np.float32) * 0.0039065
         depth_map = disp_to_depth_np(disp_map, min_depth, max_depth)
 
-        depth_map_gt = np.array(Image.fromarray(depth).resize((int(depth.shape[1]*0.5), int(depth.shape[0]*0.5))))
+        depth_map_gt = np.array(Image.fromarray(depth).resize((int(depth.shape[1]), int(depth.shape[0]))))
 
         depth_estimator.get_metrics(depth_map, depth_map_gt, min_depth, max_depth)
         depth_estimator.stats_print()
 
         data_dict = {'rgb': image, 'depth_pred':depth_map, 'depth_gt':depth_map_gt}
-        dict_file_name = '/home/nod/datasets/nyudepthV2/eval_res_data_gray/' + str(step).zfill(6) + '.pkl'
+        dict_file_name = '/home/nod/datasets/nyudepthV2/rgbd_gt_tpu_nopp_data/' + str(step).zfill(6) + '.pkl'
         f = open(dict_file_name,"wb")
         pickle.dump(data_dict,f)
         f.close()
 
-        depth_image = vis_depth(depth_map)
-        depth_image_gt = vis_depth(depth_map_gt)
-        toshow_image = np.vstack((image, depth_image, depth_image_gt))
-        Image.fromarray(toshow_image).save('/home/nod/datasets/nyudepthV2/eval_res_images_gray/' + str(step).zfill(6) + '.jpg')
+        print('Step: ', step)
+
+        # depth_image = vis_depth(depth_map)
+        # depth_image_gt = vis_depth(depth_map_gt)
+        # toshow_image = np.vstack((image, depth_image, depth_image_gt))
+        # Image.fromarray(toshow_image).save('/home/nod/datasets/nyudepthV2/eval_res_images_gray/' + str(step).zfill(6) + '.jpg')
 
     # image_path = '/home/nod/datasets/nod/debug/tmp.png'
     # image_path = '/home/nod/datasets/nod/images0_undistorted/364838870010.pgm'

@@ -136,11 +136,12 @@ def rgb2gray(R, G, B):
 
     return Y
 
-def process_image_eval_tflite_nod(image, width, height, scale=0.5):
+def process_image_eval_tflite_nod(image, width, height, scale=1.0, use_gray=False):
     image = np.array(Image.fromarray(image).resize((int(image.shape[1]*scale), int(image.shape[0]*scale))))
-    image_gray = rgb2gray(image[:,:,0], image[:,:,1], image[:,:,2])
-    image_rgb = np.array(Image.fromarray(image_gray).convert('RGB'))
-    image = image_rgb
+    if use_gray:
+        image_gray = rgb2gray(image[:,:,0], image[:,:,1], image[:,:,2])
+        image_rgb = np.array(Image.fromarray(image_gray).convert('RGB'))
+        image = image_rgb
     np_image = np.zeros((height, width, 3), dtype=np.uint8)
     np_image[:image.shape[0], :image.shape[1], :] = image
 

@@ -657,11 +657,11 @@ def eval_depth_nod(pred_depth, gt_depth, min_depth, max_depth):
     gt_depth_uncovered_value_min = gt_depth.min()
     gt_depth_uncovered_value_max = gt_depth.max()
     # for kinect, realsense
-    # gt_depth_uncovered_number = np.count_nonzero( gt_depth != gt_depth_uncovered_value_min)
-    #                                 # np.count_nonzero( gt_depth == gt_depth_uncovered_value_max)
-    # for sgm
-    gt_depth_uncovered_number = np.count_nonzero( gt_depth != gt_depth_uncovered_value_max)
+    gt_depth_uncovered_number = np.count_nonzero( gt_depth != gt_depth_uncovered_value_min)
                                     # np.count_nonzero( gt_depth == gt_depth_uncovered_value_max)
+    # for sgm
+    # gt_depth_uncovered_number = np.count_nonzero( gt_depth != gt_depth_uncovered_value_max)
+    #                                 # np.count_nonzero( gt_depth == gt_depth_uncovered_value_max)
     gt_depth_cover_ratio = np.float( gt_depth_uncovered_number / num_total_points)
 
     # Scalar matching
@@ -671,7 +671,7 @@ def eval_depth_nod(pred_depth, gt_depth, min_depth, max_depth):
 
     pred_depth[pred_depth < min_depth] = min_depth
     pred_depth[pred_depth > max_depth] = max_depth
-    abs_rel, sq_rel, rms_99, rms_95, a1, a2, a3 = \
+    abs_rel, sq_rel, rms_99, rms_95, rms_log, a1, a2, a3 = \
         compute_errors_nod(gt_depth[mask], pred_depth[mask])
 
     res_dict = {'gt_depth_cover_ratio': int(gt_depth_cover_ratio*100),
@@ -680,6 +680,7 @@ def eval_depth_nod(pred_depth, gt_depth, min_depth, max_depth):
                 'sq_rel': sq_rel,
                 'rms_99': rms_99,
                 'rms_95': rms_95,
+                'rms_log': rms_log,
                 'a1': a1,
                 'a2': a2,
                 'a3': a3,
@@ -701,8 +702,11 @@ def compute_errors_nod(gt, pred):
     rmse_99 = np.sqrt(rmse[rmse_99_mask].mean())
     rmse_95 = np.sqrt(rmse[rmse_95_mask].mean())
 
+    rmse_log = (np.log10(gt) - np.log10(pred)) ** 2
+    rmse_log = np.sqrt(np.mean(rmse_log))
+
     abs_rel = np.mean(np.abs(gt - pred) / gt)
 
     sq_rel = np.mean(((gt - pred)**2) / gt)
 
-    return abs_rel, sq_rel, rmse_99, rmse_95, a1, a2, a3
+    return abs_rel, sq_rel, rmse_99, rmse_95, rmse_log, a1, a2, a3
