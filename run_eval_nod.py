@@ -7,6 +7,7 @@ import time
 import h5py
 import pickle
 import numpy as np
+import math
 from scipy.io import matlab
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -27,6 +28,8 @@ class App:
         self.input_dir = args.input_dir
         self.output_dir = args.output_dir
         self.eval = args.eval
+        self.flip_lr = args.flip_lr
+        self.flip_color = args.flip_color
 
         if self.save_rgbd_data:
             os.makedirs('saved_data', exist_ok = True)
@@ -107,6 +110,14 @@ class App:
             color_image = (np.array(color_image, dtype=np.float) / 255 - 0.45) / 0.255
 
         return np.array(color_image)
+    
+    def flip_image_color(self, image):
+        return image[:, :, ::-1]
+
+    def process_confidence_map(self, image):
+        confidence_map = np.uint16(65536 - image * 1000)
+
+        return confidence_map
 
     def get_metrics(self, depth_map, depth_map_gt):
         res_dict = eval_depth_nod(depth_map, depth_map_gt, self.depth_engine.min_depth, self.depth_engine.max_depth)
@@ -175,11 +186,34 @@ class App:
 
             start = time.time()
             if self.eval is False:
+                if self.flip_lr:
+                    rgb_image_lr = np.fliplr(rgb_image)
+
+                if self.flip_color:
+                    rgb_image_color = self.flip_image_color(rgb_image)
+
                 start = time.time()
                 depth_map = self.depth_engine.estimate_depth(rgb_image)
+
+                if self.flip_lr:
+                    depth_map_lr = np.fliplr(self.depth_engine.estimate_depth(rgb_image_lr))
+                    depth_map = 0.5 * depth_map + 0.5 * depth_map_lr
+                    depth_map_uncertainty = np.abs(depth_map - depth_map_lr)
+                    depth_map_uncertainty = self.process_confidence_map(depth_map_uncertainty)
+                elif self.flip_color:
+                    depth_map_color = self.depth_engine.estimate_depth(rgb_image_color)
+                    depth_map = 0.5 * depth_map + 0.5 * depth_map_color
+                    depth_map_uncertainty = np.abs(depth_map - depth_map_color)
+                    depth_map_uncertainty = self.process_confidence_map(depth_map_uncertainty)
+                else:
+                    depth_map_uncertainty = None
+
                 print('Inference takes: ', time.time() - start)
                 if self.enable_filter:
-                    depth_map = bilateral_filter(rgb_image, depth_map)
+                    depth_map = bilateral_filter(rgb_image, depth_map, depth_map_uncertainty)
+                    if math.isnan(depth_map.max()):
+                        idx += 1
+                        continue
             else:
                 depth_map = self.get_pred_depth(idx)
             print(time.time() - start)
@@ -188,20 +222,21 @@ class App:
             if self.save_data:
                 self.save_rgbd_data(rgb_image, depth_map, idx)
 
-            # toshow_image = np.hstack((rgb, depth_image, depth_image_gt))
+            toshow_image = np.hstack((rgb, depth_image, depth_image_gt))
+            print(idx)
 
-            # Image.fromarray(toshow_image).save('saved_data/' + str(idx).zfill(6) + '.jpg')
+            # Image.fromarray(toshow_image).save('saved_data/tmp/' + str(idx).zfill(6) + '.jpg')
             # SCALAR: 0.002505729166737338         0.0006581630449547821
             s_viz = self.get_metrics(depth_map, depth_map_gt)
-            # plt.imshow(toshow_image)
-            # plt.text(0, -56, s_viz, fontsize=16)
-            # plt.axis('off')
-            # plt.title('    Kinect Raw Input                                         Nod Depth                    Kinect Depth with hole completion', fontsize=20, loc='left')
-            # plt.show(block=False)
+            plt.imshow(toshow_image)
+            plt.text(0, -56, s_viz, fontsize=16)
+            plt.axis('off')
+            plt.title('    Kinect Raw Input                                         Nod Depth                    Kinect Depth with hole completion', fontsize=20, loc='left')
+            plt.show(block=False)
 
-            # plt.pause(1)
+            plt.pause(0.001)
             # plt.savefig('/home/nod/datasets/nyudepthV2/eval_metrics/' + str(idx).zfill(6) + '.jpg')
-            # plt.clf()
+            plt.clf()
             idx += 1
 
         plt.close()
@@ -249,6 +284,14 @@ if __name__ == '__main__':
                         default=False,
                         action='store_true',
                         help='save rgbd data during inferencing')
+    parser.add_argument('--flip_lr',
+                        default=False,
+                        action='store_true',
+                        help='flip left and right of rgb image')
+    parser.add_argument('--flip_color',
+                        default=False,
+                        action='store_true',
+                        help='flip rgb image color space')
     args = parser.parse_args()
     import tensorflow as tf
     print(tf.__version__)

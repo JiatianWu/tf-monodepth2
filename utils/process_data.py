@@ -683,6 +683,17 @@ def merge_pickle_data(folder_1, folder_2):
 
     import pdb; pdb.set_trace()
 
+def flip_array(image_path):
+    image = np.array(Image.open(image_path))
+    image_flip_lr = np.fliplr(image)
+
+    plt.imshow(np.vstack((image, image_flip_lr)))
+    plt.show(block=True)
+
+def read_confidence(image_path):
+    image = np.array(Image.open(image_path))
+    import pdb; pdb.set_trace()
+
 if __name__ == "__main__":
     # resave_imu_data()
     # plot_acc_data('/home/jiatian/dataset/office_kitchen_0001a')
@@ -700,7 +711,7 @@ if __name__ == "__main__":
     # save_nyu_indoor_images('/home/nod/nod/nod/src/apps/nod_depth/saved_data/indoor_eval_res')
     # viz_resize('/home/nod/datasets/nod/images0')
     # read_process_nyu_data('/home/nod/datasets/nyudepthV2/nyu_depth_v2_labeled.mat')
-    generate_pc_nyudepth('/home/nod/datasets/nyudepthV2/rgbd_gt_data', '/home/nod/datasets/nyudepthV2/pc_gt')
+    # generate_pc_nyudepth('/home/nod/datasets/nyudepthV2/rgbd_gt_data', '/home/nod/datasets/nyudepthV2/pc_gt')
     # crop_folder('/home/nod/tmp', '/home/nod/tmp_2')
     # readmat('/home/nod/Downloads/splits.mat')
     # save_nyu_eval_image('/home/nod/datasets/nyudepthV2/nyu_depth_v2_labeled.mat')
@@ -715,3 +726,5 @@ if __name__ == "__main__":
     # process_kitti_data('/home/nod/datasets/kitti/kitti_data')
     # rename_folder_util('/home/nod/eval_res_nosigmoid_v2_nod')
     # merge_pickle_data('/home/nod/datasets/nyudepthV2/rgbd_data', '/home/nod/datasets/nyudepthV2/rgb_gt_data')
+    # flip_array('/home/nod/datasets/nyudepthV2/eval_data/000000.jpg')
+    read_confidence('/home/nod/project/The_Bilateral_Solver/build/confidence.png')

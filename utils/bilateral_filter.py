@@ -165,16 +165,17 @@ def rgb_gray(rgb):
 
     return gray
 
-def bilateral_filter(reference, target):
+def bilateral_filter(reference, target, confidence=None):
     im_shape = reference.shape[:2]
     target = np.uint16(target*1000)
 
     # ref_gray = rgb_gray(reference)
     # confidence = np.ones(target.shape, dtype=np.uint16) * 32768
 
-    default_mode = False
+    default_mode = True
     if default_mode:
-        confidence = np.ones(target.shape, dtype=np.uint16) * 65536
+        if confidence is None:
+            confidence = np.ones(target.shape, dtype=np.uint16) * 65536
         grid_params['sigma_spatial'] = 6
         grid = BilateralGrid(reference, **grid_params)
         t = target.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
@@ -186,7 +187,8 @@ def bilateral_filter(reference, target):
     else:
         solver_list = []
 
-        confidence = np.ones(target.shape, dtype=np.uint16) * 65536
+        if confidence is None:
+            confidence = np.ones(target.shape, dtype=np.uint16) * 65536
         for spa in range(4, 12, 2):
             grid_params['sigma_spatial'] = spa
             grid = BilateralGrid(reference, **grid_params)
