@@ -305,6 +305,13 @@ def rename_folder_util(folder):
         os.rename(folder + '/' + seq, folder + '/' + str(idx).zfill(6) + '.jpg')
         idx += 1
 
+def rename_folder_image(folder):
+    dirlist = sorted(os.listdir(folder))
+    idx = 0
+    for seq in dirlist:
+        Image.open(folder + '/' + seq).save(folder + '/' + str(idx).zfill(6) + '.jpg')
+        idx += 1
+
 def plot_trajectory(data_file_name):
     # data = open(data_file_name,"rb")
     # poses_log = pickle.load(data)
@@ -719,12 +726,12 @@ if __name__ == "__main__":
     # rename_folder_weanhall('/home/nod/datasets/weanhall/comp')
     # add_metrics_weanhall('/home/nod/datasets/weanhall/rgbd_data_wean', '/home/nod/datasets/weanhall/eval_sgm_data', '/home/nod/datasets/weanhall/comp')
     # generate_pc_media_intrinsics('/home/nod/datasets/media/eval/eval_res_data', '/home/nod/datasets/media/eval/pc')
-    # viz_rgbd('/home/nod/datasets/media/eval/eval_res_data')
+    viz_rgbd('/home/nod/datasets/media/eval/eval_res_data_nod')
     # vis_image_crop('/home/nod/datasets/weanhall/eval_metrics/001907.jpg')
     # crop_folder('/home/nod/datasets/weanhall/eval_metrics', '/home/nod/datasets/weanhall/eval_metrics_crop')
     # add_metrics_weanhall('/home/nod/datasets/weanhall/eval_model_data', '/home/nod/datasets/weanhall/eval_sgm_data', '/home/nod/datasets/weanhall/rectified')
     # process_kitti_data('/home/nod/datasets/kitti/kitti_data')
-    # rename_folder_util('/home/nod/eval_res_nosigmoid_v2_nod')
+    # rename_folder_image('/home/nod/datasets/nyudepthV2/test_kitchen/color')
     # merge_pickle_data('/home/nod/datasets/nyudepthV2/rgbd_data', '/home/nod/datasets/nyudepthV2/rgb_gt_data')
     # flip_array('/home/nod/datasets/nyudepthV2/eval_data/000000.jpg')
-    read_confidence('/home/nod/project/The_Bilateral_Solver/build/confidence.png')
+    # read_confidence('/home/nod/project/The_Bilateral_Solver/build/confidence.png')

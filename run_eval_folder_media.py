@@ -36,7 +36,7 @@ class App:
         if args.cpu:
             os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
-        config_path = 'config/noddepth_nyu_eval.yml'
+        config_path = 'config/noddepth_nod_eval.yml'
 
         folder_path = '/home/nod/datasets/media/eval/undistort'
         self.setup_datasource(folder_path)
@@ -75,7 +75,7 @@ class App:
 
     def save_rgbd_data(self, rgb, depth, depth_image=None, idx=None):
         data_dict = {'rgb': rgb, 'depth': depth, 'depth_image': depth_image}
-        data_file_name = '/home/nod/datasets/media/eval/eval_res_data/' + str(idx).zfill(6) + '.pkl'
+        data_file_name = '/home/nod/datasets/media/eval/eval_res_data_nod/' + str(idx).zfill(6) + '.pkl'
         f = open(data_file_name,"wb")
         pickle.dump(data_dict, f)
         f.close()
@@ -153,8 +153,8 @@ class App:
             print(time.time() - start)
             if self.enable_filter:
                 depth_map = bilateral_filter(rgb_image, depth_map)
-                depth_map *= 2.505729166737338
-                depth_map -= depth_map.min()
+                # depth_map *= 2.505729166737338
+                # depth_map -= depth_map.min()
             depth_image = vis_depth(depth_map)
 
             if self.save_data:

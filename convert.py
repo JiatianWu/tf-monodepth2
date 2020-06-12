@@ -5,7 +5,7 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 if __name__ == "__main__":
-    dataset_name = 'lyft'
+    dataset_name = 'xilinx'
 
     if dataset_name == 'tello':
         config_path = 'config/monodepth2_tello.yml'
@@ -142,5 +142,5 @@ if __name__ == "__main__":
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.save_xilinx_pb(ckpt_dir='saved_model/xilinx_640_480/model-2268002',
-                           pb_path ='saved_model/xilinx_640_480/saved_model_xilinx.pb')
+        app.save_xilinx_pb(ckpt_dir='saved_model/xilinx_640_480_nod/model-1255828',
+                           pb_path ='saved_model/xilinx_640_480_nod/saved_model.pb')
