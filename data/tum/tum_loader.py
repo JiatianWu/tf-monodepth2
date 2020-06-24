@@ -2,17 +2,19 @@ from __future__ import division
 import numpy as np
 from glob import glob
 import os
-import scipy.misc
+from PIL import Image
 
 class tum_loader(object):
     def __init__(self, 
                  dataset_dir,
                  split,
                  sequence_id,
-                 img_height=256,
-                 img_width=256,
-                 seq_length=5):
+                 sample_gap=3,
+                 img_height=640,
+                 img_width=480,
+                 seq_length=3):
         self.dataset_dir = dataset_dir
+        self.sample_gap = sample_gap
         self.img_height = img_height
         self.img_width = img_width
         self.seq_length = seq_length
@@ -34,7 +36,7 @@ class tum_loader(object):
     def is_valid_sample(self, frames, tgt_idx):
         N = len(frames)
         tgt_drive, fid = frames[tgt_idx].split(' ')
-        half_offset = int((self.seq_length - 1)/2)
+        half_offset = int((self.seq_length - 1)/2 * self.sample_gap)
         min_src_idx = tgt_idx - half_offset
         max_src_idx = tgt_idx + half_offset
         if min_src_idx < 0 or max_src_idx >= N:
@@ -52,16 +54,16 @@ class tum_loader(object):
         return example
 
     def load_image_sequence(self, frames, tgt_idx, seq_length):
-        half_offset = int((seq_length - 1)/2)
+        half_offset = int((seq_length - 1)/2 * self.sample_gap)
         image_seq = []
-        for o in range(-half_offset, half_offset + 1):
+        for o in range(-half_offset, half_offset + 1, self.sample_gap):
             curr_idx = tgt_idx + o
             curr_drive, curr_frame_id = frames[curr_idx].split(' ')
             curr_img = self.load_image_raw(curr_drive, curr_frame_id)
             if o == 0:
-                zoom_y = self.img_height/curr_img.shape[0]
-                zoom_x = self.img_width/curr_img.shape[1]
-            curr_img = scipy.misc.imresize(curr_img, (self.img_height, self.img_width))
+                zoom_y = self.img_height/curr_img.size[1]
+                zoom_x = self.img_width/curr_img.size[0]
+            curr_img = np.array(curr_img.resize((self.img_width, self.img_height)))
             image_seq.append(curr_img)
         return image_seq, zoom_x, zoom_y
 
@@ -79,7 +81,7 @@ class tum_loader(object):
 
     def load_image_raw(self, drive, frame_id):
         img_file = self.dataset_dir + drive + '/image/' + frame_id + '.jpg'
-        img = scipy.misc.imread(img_file)
+        img = Image.open(img_file)
         return img
 
     def load_intrinsics_raw(self, drive, frame_id):

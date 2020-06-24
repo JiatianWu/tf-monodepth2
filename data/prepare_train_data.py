@@ -9,7 +9,7 @@ import os
 
 parser = argparse.ArgumentParser()
 
-dataset_name = 'redwood'
+dataset_name = 'tum'
 
 if dataset_name == 'redwood':
     parser.add_argument("--seq_length", type=int, default=3, help="Length of each training sequence")
@@ -29,14 +29,18 @@ if dataset_name == 'nyu_fullRes':
     parser.add_argument("--dataset_name", type=str, default='nyu_fullRes', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello", "nyu"])
     parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/nyu_fullRes/', help="Where to dump the data")
 
-if dataset_name == 'nyu': 
+if dataset_name == 'nyu':
     parser.add_argument("--dataset_dir", type=str, default='/freezer/nyudepthV2_raw/', help="where the dataset is stored")
     parser.add_argument("--dataset_name", type=str, default='nyu', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello", "nyu"])
     parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/nyu/', help="Where to dump the data")
 
-if dataset_name == 'tum': 
-    parser.add_argument("--dataset_dir", type=str, default='/home/jiatian/dataset/all_sequences/', help="where the dataset is stored")
-    parser.add_argument("--dataset_name", type=str, default='tum', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello"])
+if dataset_name == 'tum':
+    parser.add_argument("--seq_length", type=int, default=3, help="Length of each training sequence")
+    parser.add_argument("--img_height", type=int, default=480, help="image height")
+    parser.add_argument("--img_width", type=int, default=640, help="image width")
+    parser.add_argument("--num_threads", type=int, default=16, help="number of threads to use")
+    parser.add_argument("--dataset_dir", type=str, default='/freezer/tum_mono_dataset/', help="where the dataset is stored")
+    parser.add_argument("--dataset_name", type=str, default='tum', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello", "nyu"])
     parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/tum/', help="Where to dump the data")
 
 if dataset_name == 'tello': 
@@ -136,14 +140,19 @@ def main():
 
     if args.dataset_name == 'tum':
         from tum.tum_loader import tum_loader
-        id = 0
-        data_loader = tum_loader(args.dataset_dir,
-                            split='sequence',
-                            sequence_id=id,
-                            img_height=args.img_height,
-                            img_width=args.img_width,
-                            seq_length=args.seq_length)
-        # Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+        sequences_number = len(os.listdir(args.dataset_dir))
+        for id in range(sequences_number):
+            print('Sequence id: ', id)
+            try:
+                data_loader = tum_loader(args.dataset_dir,
+                                        split='sequence',
+                                        sequence_id=id,
+                                        img_height=args.img_height,
+                                        img_width=args.img_width,
+                                        seq_length=args.seq_length)
+                Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+            except:
+                print("ERROR in " + str(id))
 
     if args.dataset_name == 'tello':
         from tello.tello_loader import tello_loader
