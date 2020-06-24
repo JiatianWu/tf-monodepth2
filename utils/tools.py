@@ -645,7 +645,18 @@ def compute_errors(gt, pred):
 
     return abs_rel, sq_rel, rmse, a1, a2, a3
 
-def eval_depth_nod(pred_depth, gt_depth, min_depth, max_depth):
+def print_eval_dict(dict):
+    s_gt_cover_ratio = 'Kinect depth cover ratio: ' + str(dict['gt_depth_cover_ratio']) + '%\n'
+    s_pred_cover_ratio = 'Nod depth cover ratio: ' + str(dict['pred_depth_cover_ratio']) + '%\n'
+
+    s_abs_rel = 'Absolute relative error: ' + '{:f}'.format(dict['abs_rel']) + '\n'
+    s_sq_rel = 'Square relative error: ' + '{:f}'.format(dict['sq_rel']) + 'm\n'
+    s_rms_99 = '99% Root mean squred error: ' + '{:f}'.format(dict['rms_99']) + 'm\n'
+    s_rms_95 = '95% Root mean squred error: ' + '{:f}'.format(dict['rms_95']) + 'm\n'
+
+    print(s_gt_cover_ratio, s_pred_cover_ratio, s_abs_rel, s_sq_rel, s_rms_99, s_rms_95)
+
+def eval_depth_nod(pred_depth, gt_depth, min_depth, max_depth, scalar=None):
     # Process ground truth depth
     if gt_depth.dtype is np.dtype('uint16'):
         gt_depth = gt_depth.astype(float) / 1000.
@@ -653,7 +664,9 @@ def eval_depth_nod(pred_depth, gt_depth, min_depth, max_depth):
     # Cover ratio
     num_total_points = pred_depth.size
     pred_depth_uncovered_value = pred_depth.max()
-    pred_depth_cover_ratio = np.float(np.count_nonzero(pred_depth != pred_depth_uncovered_value) / num_total_points)
+    pred_depth_uncovered_number_min = np.count_nonzero(pred_depth < min_depth)
+    pred_depth_uncovered_number_max = np.count_nonzero(pred_depth > max_depth)
+    pred_depth_cover_ratio = np.float((num_total_points - pred_depth_uncovered_number_min - pred_depth_uncovered_number_max) / num_total_points)
     gt_depth_uncovered_value_min = gt_depth.min()
     gt_depth_uncovered_value_max = gt_depth.max()
     # for kinect, realsense
@@ -665,8 +678,11 @@ def eval_depth_nod(pred_depth, gt_depth, min_depth, max_depth):
     gt_depth_cover_ratio = np.float( gt_depth_uncovered_number / num_total_points)
 
     # Scalar matching
-    mask = np.logical_and(gt_depth > min_depth, gt_depth < max_depth)
-    scalar = np.mean(gt_depth[mask]) / np.mean(pred_depth[mask])
+    mask_gt = np.logical_and(gt_depth > min_depth, gt_depth < max_depth)
+    mask_pred = np.logical_and(pred_depth > min_depth, pred_depth < max_depth)
+    mask = np.logical_and(mask_gt, mask_pred)
+    if scalar is None:
+        scalar = np.mean(gt_depth[mask]) / np.mean(pred_depth[mask])
     pred_depth[mask] *= scalar
 
     pred_depth[pred_depth < min_depth] = min_depth

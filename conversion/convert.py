@@ -74,6 +74,24 @@ class SaveModel(object):
 
         self.pred_disp = tf.identity(pred_disp, name='output')
 
+    def build_new_depth(self):
+        from model_new.net import Net
+
+        self.tgt_image_uint8 = tf.placeholder(tf.uint8, [1, self.img_height, self.img_width, 3], name='input')
+        with tf.name_scope('data_loading'):
+            tgt_image_float = tf.image.convert_image_dtype(self.tgt_image_uint8, dtype=tf.float32)
+        self.tgt_image_float = tf.identity(tgt_image_float, name='input_float')
+        tgt_image_net = self.preprocess_image(self.tgt_image_float)
+
+        # self.tgt_image_float = tf.placeholder(tf.float32, [None, self.img_height, self.img_width, 3], name='input')
+        with tf.variable_scope('monodepth2_model', reuse=tf.AUTO_REUSE) as scope:
+            net_builder = Net(False, **self.config)
+
+            res18_tc, skips_tc = net_builder.build_resnet18(tgt_image_net)
+            pred_disp = net_builder.build_disp_net_bilinear(res18_tc, skips_tc)[0]
+
+        self.pred_disp = tf.identity(pred_disp, name='output')
+
     def build_depth(self):
         from model_new.net import Net
 
@@ -258,7 +276,7 @@ class SaveModel(object):
     def save_pb(self, ckpt_dir, pb_path):
         from tensorflow.python.framework import graph_util
 
-        self.build_depth()
+        self.build_new_depth()
 
         var_list = [var for var in tf.global_variables() if "moving" in var.name]
         var_list += tf.trainable_variables()
@@ -391,6 +409,17 @@ class SaveModel(object):
 
     def build_default_depth_model(self, ckpt_dir):
         self.build_default_depth()
+        var_list = [var for var in tf.global_variables() if "moving" in var.name]
+        var_list += tf.trainable_variables()
+        self.saver = tf.train.Saver(var_list, max_to_keep=10)
+
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        self.sess = tf.Session(config=config)
+        self.saver.restore(self.sess, ckpt_dir)
+
+    def build_new_depth_model(self, ckpt_dir):
+        self.build_new_depth()
         var_list = [var for var in tf.global_variables() if "moving" in var.name]
         var_list += tf.trainable_variables()
         self.saver = tf.train.Saver(var_list, max_to_keep=10)

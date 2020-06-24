@@ -25,5 +25,5 @@ model:
     torch_res18_ckpt: '/home/jiatian/project/tf-monodepth2/res_model_extractor/resnet18.npy'
     summary_freq: 200
     pose_type: 'seperate' # seperate or shared
-    pb_path: 'saved_model/ckpt_640_480/saved_model.pb'
+    pb_path: '/home/nod/project/tf-monodepth2/saved_model/ckpt_640_480_finetune/0615/saved_model.pb'
     inference_ckpt: False

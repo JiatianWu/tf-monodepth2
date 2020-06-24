@@ -6,6 +6,7 @@ import os
 import time
 import h5py
 import pickle
+import glob
 import numpy as np
 import math
 from scipy.io import matlab
@@ -40,7 +41,7 @@ class App:
 
         config_path = 'config/noddepth_nyu_eval.yml'
 
-        datasource_path = '/home/nod/datasets/robot/20200611/rgbd_gt_data'
+        datasource_path = '/home/nod/datasets/robot/20200611/train_data'
         self.setup_datasource(datasource_path, eval=False)
 
         with open(config_path, 'r') as f:
@@ -49,8 +50,8 @@ class App:
         self.depth_engine.load_model()
 
         self.output_size = (self.depth_engine.img_width, self.depth_engine.img_height) # (width, height)
-        self.crop_corner = (160, 0) # (x, y)
-        self.crop_size = (960, 720) # (width, height)
+        self.crop_corner = (640, 0) # (x, y)
+        self.crop_size = (640, 480) # (width, height)
 
         self.cr_gt = []
         self.cr_pred = []
@@ -66,23 +67,21 @@ class App:
 
     def setup_datasource(self, path, eval=False):
         self.folder_path = path
-        self.batch_size = len(os.listdir(path))
+        # self.batch_size = len(os.listdir(path))
+        self.batch_size = len(glob.glob(path + '/*.jpg'))
 
     def get_datasource(self, idx=None):
         if idx < self.batch_size:
-            data_path = self.folder_path + '/' + str(idx).zfill(6) + '.pkl'
-            data = open(data_path,"rb")
-            data_dict = pickle.load(data)
-            image = data_dict['rgb']
-            depth_gt = data_dict['depth_gt']
+            data_path = self.folder_path + '/' + str(idx).zfill(6) + '.jpg'
+            image = np.array(Image.open(data_path))
 
-            return [image, depth_gt]
+            return [image, None]
         else:
             self.flag_exit = True
             return None
 
     def save_rgbd_data(self, rgb, depth, depth_gt=None, idx=None):
-        data_dict = {'rgb': rgb, 'depth_pred': depth, 'depth_gt':depth_gt}
+        data_dict = {'rgb': rgb, 'depth': depth, 'depth_gt':depth_gt}
         data_file_name = 'saved_data/tmp_data/' + str(idx).zfill(6) + '.pkl'
         f = open(data_file_name,"wb")
         pickle.dump(data_dict,f)
@@ -97,6 +96,9 @@ class App:
         return depth
 
     def preprocess_image(self, image):
+        if image is None:
+            return None
+
         color_image = Image.fromarray(image)
         if color_image.size != self.output_size:
             color_image = color_image.crop(box=(self.crop_corner[0],
@@ -120,7 +122,7 @@ class App:
         return confidence_map
 
     def get_metrics(self, depth_map, depth_map_gt):
-        res_dict = eval_depth_nod(depth_map, depth_map_gt, self.depth_engine.min_depth, self.depth_engine.max_depth, 0.5977342578130507)
+        res_dict = eval_depth_nod(depth_map, depth_map_gt, self.depth_engine.min_depth, self.depth_engine.max_depth)
         s_gt_cover_ratio = 'Kinect depth cover ratio: ' + str(res_dict['gt_depth_cover_ratio']) + '%\n'
         s_pred_cover_ratio = 'Nod depth cover ratio: ' + str(res_dict['pred_depth_cover_ratio']) + '%\n'
         if self.show_cover_ratio_only:
@@ -222,14 +224,17 @@ class App:
             if self.save_data:
                 self.save_rgbd_data(rgb_image, depth_map, depth_map_gt, idx)
 
-            toshow_image = np.hstack((rgb, depth_image, depth_image_gt))
+            if depth_image_gt is None:
+                toshow_image = np.hstack((rgb_image, depth_image))
+            else:
+                toshow_image = np.hstack((rgb_image, depth_image, depth_image_gt))
             print(idx)
 
             Image.fromarray(toshow_image).save('saved_data/tmp/' + str(idx).zfill(6) + '.jpg')
             # SCALAR: 0.002505729166737338         0.0006581630449547821
-            s_viz = self.get_metrics(depth_map, depth_map_gt)
+            # s_viz = self.get_metrics(depth_map, depth_map_gt)
             plt.imshow(toshow_image)
-            plt.text(0, -56, s_viz, fontsize=16)
+            # plt.text(0, -56, s_viz, fontsize=16)
             plt.axis('off')
             plt.title('    Kinect Raw Input                                         Nod Depth                    Kinect Depth with hole completion', fontsize=20, loc='left')
             plt.show(block=False)

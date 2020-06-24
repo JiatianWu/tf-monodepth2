@@ -5,7 +5,7 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 if __name__ == "__main__":
-    dataset_name = 'xilinx'
+    dataset_name = 'nod_test'
 
     if dataset_name == 'tello':
         config_path = 'config/monodepth2_tello.yml'
@@ -63,21 +63,21 @@ if __name__ == "__main__":
         #                     savedModel_dir ='saved_model/tflite_test/tmp_nod_test_0217/saved_model.pb',
         #                     save_tflite=True)
     elif dataset_name == 'nod_test':
-        config_path = 'config/noddepth_nyu_test.yml'
+        config_path = 'config/noddepth_nyu_eval.yml'
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        # app.save_pb(ckpt_dir='saved_model/ckpt_640_480/model-756002',
-        #             pb_path='saved_model/ckpt_320_240/saved_model.pb')
+        app.save_pb(ckpt_dir='saved_model/ckpt_640_480_finetune/0615/model-758188',
+                    pb_path='saved_model/ckpt_640_480_finetune/0615/saved_model.pb')
         # app.save_savedModel(ckpt_dir='saved_model/ckpt_640_480/model-756002',
         #                     savedModel_dir ='saved_model/tflite_320_240/',
         #                     save_tflite=True)
         # app.save_savedModel(ckpt_dir='saved_model/ckpt_640_480/model-756002',
         #                     savedModel_dir ='saved_model/tflite_320_240_test/',
         #                     save_tflite=False)
-        app.save_savedModel(ckpt_dir='saved_model/ckpt_640_480_bilinear/model-2268002',
-                            savedModel_dir ='saved_model/tflite_320_240_bilinear/',
-                            save_tflite=True)
+        # app.save_savedModel(ckpt_dir='saved_model/ckpt_640_480_bilinear/model-2268002',
+        #                     savedModel_dir ='saved_model/tflite_320_240_bilinear/',
+        #                     save_tflite=True)
         # app.test_video(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model/ckpt_nod/0213_640_480/model-756002',
         #                input_dir='/home/jiatian/dataset/nod_device/Demo_Record2/nodvi/device/data/images2',
         #                output_dir='/home/jiatian/dataset/tmp/tmp_nod_in')

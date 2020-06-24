@@ -162,15 +162,15 @@ def wrap_pixel(x, y):
 
     return x_std, y_std
 
-# def vis_depth(depth_map):
-#     vmax = np.percentile(depth_map, 95)
-#     vmin = depth_map.min()
-#     normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
-#     mapper = mpl.cm.ScalarMappable(norm=normalizer, cmap='viridis')
+def vis_depth(depth_map):
+    vmax = np.percentile(depth_map, 90)
+    vmin = depth_map.min()
+    normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    mapper = mpl.cm.ScalarMappable(norm=normalizer, cmap='viridis')
 
-#     colormapped_im = (mapper.to_rgba(depth_map)[:, :, :3][:,:,::-1] * 255).astype(np.uint8)
+    colormapped_im = (mapper.to_rgba(depth_map)[:, :, :3][:,:,::-1] * 255).astype(np.uint8)
 
-#     return colormapped_im[:, :, ::-1]
+    return colormapped_im[:, :, ::-1]
 
 def vis_float_image(folder):
     seqs = sorted(os.listdir(folder))
@@ -428,6 +428,7 @@ def generate_pointcloud(rgb, depth, intrinsics=None, ply_file=None):
                 %s
                 '''%(len(points),"".join(points)))
     file.close()
+
 def generate_pc_nyudepth(input_folder, output_folder):
     P_rect = np.eye(3, 3)
     P_rect[0,0] = 5.1885790117450188e+02
@@ -493,6 +494,37 @@ def generate_pc_media_intrinsics(input_folder, output_folder):
         pc_pred_path = output_folder + '/' + str(step).zfill(6) + '.ply'
         generate_pointcloud(rgb, depth_pred, intrinsics=P_rect, ply_file=pc_pred_path)
         step += 1
+
+def generate_pc_kinect(input_folder, output_folder):
+    P_rect = np.eye(3, 3)
+    P_rect[0,0] = 400.516317
+    P_rect[0,2] = 320.171183
+    P_rect[1,1] = 400.410970
+    P_rect[1,2] = 243.274495
+
+    # build_output_dir(output_folder)
+    # dirlist = sorted(os.listdir(input_folder))
+    # step = 0
+    # for seq in dirlist:
+    #     print('Processing idx: ', step)
+    #     data_path = input_folder + '/' + seq
+    #     data = open(data_path,"rb")
+    #     data_dict = pickle.load(data)
+
+    #     rgb = data_dict['rgb']
+    #     depth_pred = data_dict['depth_pred'] * 1000
+    #     depth_gt = data_dict['depth_gt']
+
+    #     pc_pred_path = output_folder + '/' + str(step).zfill(6) + '.ply'
+    #     pc_gt_path = output_folder + '/' + str(step).zfill(6) + '_gt.ply'
+    #     generate_pointcloud(rgb, depth_pred, P_rect, ply_file=pc_pred_path)
+    #     generate_pointcloud(rgb, depth_gt, P_rect, ply_file=pc_gt_path)
+    #     step += 1
+
+    rgb = np.array(Image.open('/home/nod/project/dso/build/sample/00068.jpg'))
+    depth_pred = np.array(Image.open('/home/nod/project/dso/build/sample/00023.png')) * 6.66
+    pc_pred_path = '/home/nod/project/dso/build/sample/00068.ply'
+    generate_pointcloud(rgb, depth_pred, intrinsics=P_rect, ply_file=pc_pred_path)
 
 def build_output_dir(output_dir):
     try:
@@ -570,6 +602,13 @@ def rename_folder_weanhall(folder):
         os.rename(folder + '/' + seq, folder + '/' + str(idx).zfill(6) +'.jpg')
         idx +=1
 
+def rename_folder_tum(folder):
+    dirlist = sorted(os.listdir(folder))
+    idx = 0
+    for seq in dirlist:
+        os.rename(folder + '/' + seq, folder + '/' + str(idx).zfill(5) +'.jpg')
+        idx +=1
+
 def add_metrics_weanhall(nod_folder, sgm_folder, image_folder=None):
     path = image_folder
     image_left_path_list = []
@@ -645,12 +684,37 @@ def viz_rgbd(folder):
         data = open(data_path,"rb")
         data_dict = pickle.load(data)
         rgb = data_dict['rgb']
-        depth = data_dict['depth']
+        depth = data_dict['depth_pred'] * 1000
+        depth_gt = data_dict['depth_gt']
 
         # r = rgb[:, :, 0]
-        toshow_image = depth
+        toshow_image = np.hstack((depth, depth_gt))
         plt.imshow(toshow_image)
         plt.show(block = True)
+
+def save_rgb(folder):
+    dirlist = sorted(os.listdir(folder))
+    idx = 0
+    for seq in dirlist:
+        data_path = folder + '/' + seq
+        data = open(data_path,"rb")
+        data_dict = pickle.load(data)
+        rgb = data_dict['rgb']
+
+        Image.fromarray(rgb).save('/home/nod/datasets/robot/20200611/dso/images/' + str(idx).zfill(5) + '.jpg')
+        idx += 1
+
+def save_depth(folder):
+    dirlist = sorted(os.listdir(folder))
+    idx = 0
+    for seq in dirlist:
+        data_path = folder + '/' + seq
+        data = open(data_path,"rb")
+        data_dict = pickle.load(data)
+        depth = np.uint16(data_dict['depth_pred'] * 1000)
+
+        Image.fromarray(depth).save('/home/nod/tmp/' + str(idx).zfill(5) + '.png')
+        idx += 1
 
 def process_kitti_data(folder):
     dirlist = sorted(os.listdir(folder))
@@ -677,18 +741,16 @@ def merge_pickle_data(folder_1, folder_2):
 
         data_2 = open(data_path_2,"rb")
         data_dict_2 = pickle.load(data_2)
-        depth_gt = data_dict_2['depth_gt']
+        depth_gt = data_dict_2['depth_gt'][:, 640:1280]
 
         data_dict = {'rgb':rgb,
                      'depth_pred':depth_pred,
                      'depth_gt': depth_gt}
 
-        dict_file_name = '/home/nod/datasets/nyudepthV2/rgbd_gt_data/' + file
+        dict_file_name = '/home/nod/datasets/robot/20200611/rgbd_gt_data/' + file
         f = open(dict_file_name,"wb")
         pickle.dump(data_dict, f)
         f.close()
-
-    import pdb; pdb.set_trace()
 
 def flip_array(image_path):
     image = np.array(Image.open(image_path))
@@ -699,7 +761,74 @@ def flip_array(image_path):
 
 def read_confidence(image_path):
     image = np.array(Image.open(image_path))
+
+def read_depth(image_path):
+    image = np.array(Image.open(image_path))
+    # image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
     import pdb; pdb.set_trace()
+
+def process_dso(data_path):
+    data = open(data_path,"rb")
+    data_dict = pickle.load(data)
+
+    rgb = data_dict['rgb']
+    depth_pred = data_dict['depth_pred'] * 1000
+    depth_gt = data_dict['depth_gt']
+
+    depth_dso = np.array(Image.open('/home/nod/project/dso/build/sample/00023.png'))
+
+    # toshow_image = np.hstack((depth_dso, depth_gt))
+    # plt.imshow(toshow_image)
+    # plt.show(block = True)
+
+    # Scalar matching, scalar is 4.257004157652051
+    # scalar_dso
+    # 4.257004157652051
+    # scalar_pred
+    # 0.7131490173152352
+    mask_gt = np.logical_and(depth_gt > 10, depth_gt < 2000)
+    mask_pred = np.logical_and(depth_pred > 100, depth_pred < 10000)
+    mask_dso = np.logical_and(depth_dso > 10, depth_dso < 2000)
+    scalar_dso = np.mean(depth_gt[mask_gt]) / np.mean(depth_dso[mask_dso])
+    scalar_pred = np.mean(depth_gt[mask_gt]) / np.mean(depth_pred[mask_pred])
+
+    # depth_dso_image = vis_depth(depth_dso * scalar_dso)
+    # depth_pred_image = vis_depth(depth_pred * scalar_pred)
+    # Image.fromarray(depth_dso_image).save('/home/nod/project/dso/build/sample/depth_dso.png')
+    # Image.fromarray(depth_pred_image).save('/home/nod/project/dso/build/sample/depth_pred.png')
+
+def eval_densify(data_path):
+    data = open(data_path,"rb")
+    data_dict = pickle.load(data)
+
+    # pdb.set_trace()
+    rgb = data_dict['rgb']
+    depth_pred = data_dict['depth_pred']
+    depth_dso = data_dict['depth_dso']
+    depth_gt = data_dict['depth_gt']
+    depth_densify = data_dict['depth_densify']
+
+    depth_pred_image = vis_depth(depth_pred)
+    depth_dso_image = vis_depth(depth_dso)
+    depth_densify_image = vis_depth(depth_densify)
+    depth_gt_image = vis_depth(depth_gt)
+    # plt.title('    Nod Depth                             DSO Depth                          Densified DSO                Kinect Depth', fontsize=20, loc='left')
+    # plt.imshow(np.hstack((depth_pred_image, depth_dso_image, depth_densify_image, depth_gt_image)))
+    plt.title('    Nod Depth                  Densified DSO              Kinect Depth', fontsize=12, loc='left')
+    plt.imshow(np.hstack((depth_pred, depth_densify, depth_gt)))
+    plt.show(block=True)
+
+    min_depth = 0.1
+    max_depth = 10
+    print('------------------EVAL Depth Model------------------')
+    eval_pred_dict = eval_depth_nod(depth_pred, depth_gt, min_depth, max_depth, 1.0)
+    print_eval_dict(eval_pred_dict)
+    print('------------------EVAL DSO------------------')
+    eval_dso_dict = eval_depth_nod(depth_dso, depth_gt, min_depth, max_depth, 1.0)
+    print_eval_dict(eval_dso_dict)
+    print('------------------EVAL Densified DSO------------------')
+    eval_densify_dict = eval_depth_nod(depth_densify, depth_gt, min_depth, max_depth, 1.0)
+    print_eval_dict(eval_densify_dict)
 
 if __name__ == "__main__":
     # resave_imu_data()
@@ -723,10 +852,10 @@ if __name__ == "__main__":
     # readmat('/home/nod/Downloads/splits.mat')
     # save_nyu_eval_image('/home/nod/datasets/nyudepthV2/nyu_depth_v2_labeled.mat')
     # comp_nod_sgm('/home/nod/datasets/weanhall/eval', '/home/nod/datasets/weanhall/eval_sgm')
-    # rename_folder_weanhall('/home/nod/datasets/weanhall/comp')
+    # rename_folder_tum('/home/nod/datasets/robot/20200611/images')
     # add_metrics_weanhall('/home/nod/datasets/weanhall/rgbd_data_wean', '/home/nod/datasets/weanhall/eval_sgm_data', '/home/nod/datasets/weanhall/comp')
     # generate_pc_media_intrinsics('/home/nod/datasets/media/eval/eval_res_data', '/home/nod/datasets/media/eval/pc')
-    viz_rgbd('/home/nod/datasets/media/eval/eval_res_data_nod')
+    # viz_rgbd('/home/nod/datasets/robot/20200611/rgbd_gt_data_finetune')
     # vis_image_crop('/home/nod/datasets/weanhall/eval_metrics/001907.jpg')
     # crop_folder('/home/nod/datasets/weanhall/eval_metrics', '/home/nod/datasets/weanhall/eval_metrics_crop')
     # add_metrics_weanhall('/home/nod/datasets/weanhall/eval_model_data', '/home/nod/datasets/weanhall/eval_sgm_data', '/home/nod/datasets/weanhall/rectified')
@@ -735,3 +864,10 @@ if __name__ == "__main__":
     # merge_pickle_data('/home/nod/datasets/nyudepthV2/rgbd_data', '/home/nod/datasets/nyudepthV2/rgb_gt_data')
     # flip_array('/home/nod/datasets/nyudepthV2/eval_data/000000.jpg')
     # read_confidence('/home/nod/project/The_Bilateral_Solver/build/confidence.png')
+    # merge_pickle_data('/home/nod/project/tf-monodepth2/saved_data/tmp_data', '/home/nod/datasets/robot/20200611/depth_data')
+    # generate_pc_kinect('/home/nod/datasets/robot/20200611/rgbd_gt_data_finetune', '/home/nod/datasets/robot/20200611/pc_data_finetune')
+    # save_rgb('/home/nod/datasets/robot/20200611/rgbd_gt_data')
+    # save_depth('/home/nod/datasets/robot/20200611/rgbd_gt_data_finetune')
+    # read_depth('/home/nod/project/dso/build/depths_out/00007.png')
+    # process_dso('/home/nod/project/dso/build/sample/000068.pkl')
+    eval_densify('/home/nod/project/dso/build/sample/00068_densify.pkl')
