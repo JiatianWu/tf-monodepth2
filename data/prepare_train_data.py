@@ -9,7 +9,16 @@ import os
 
 parser = argparse.ArgumentParser()
 
-dataset_name = 'nod'
+dataset_name = 'redwood'
+
+if dataset_name == 'redwood':
+    parser.add_argument("--seq_length", type=int, default=3, help="Length of each training sequence")
+    parser.add_argument("--img_height", type=int, default=480, help="image height")
+    parser.add_argument("--img_width", type=int, default=640, help="image width")
+    parser.add_argument("--num_threads", type=int, default=16, help="number of threads to use")
+    parser.add_argument("--dataset_dir", type=str, default='/home/jiatian/Downloads/redwood/', help="where the dataset is stored")
+    parser.add_argument("--dataset_name", type=str, default='redwood', choices=["kitti_raw_eigen", "kitti_raw_stereo", "kitti_odom", "cityscapes", "tum", "tello", "nyu"])
+    parser.add_argument("--dump_root", type=str, default='/home/jiatian/dataset/redwood/', help="Where to dump the data")
 
 if dataset_name == 'nyu_fullRes':
     parser.add_argument("--seq_length", type=int, default=3, help="Length of each training sequence")
@@ -216,6 +225,22 @@ def main():
                                     img_height=args.img_height,
                                     img_width=args.img_width,
                                     seq_length=args.seq_length)
+                Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
+            except:
+                print("ERROR in " + str(id))
+
+    if args.dataset_name == 'redwood':
+        from redwood.redwood_loader import redwood_loader
+        sequences_number = len(os.listdir(args.dataset_dir))
+        for id in range(sequences_number):
+            print('Sequence id: ', id)
+            try:
+                data_loader = redwood_loader(args.dataset_dir,
+                                            split='sequence',
+                                            sequence_id=id,
+                                            img_height=args.img_height,
+                                            img_width=args.img_width,
+                                            seq_length=args.seq_length)
                 Parallel(n_jobs=args.num_threads)(delayed(dump_example)(n, args) for n in range(data_loader.num_train))
             except:
                 print("ERROR in " + str(id))
