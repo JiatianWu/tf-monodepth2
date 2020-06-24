@@ -5,7 +5,7 @@ import os
 from PIL import Image
 import scipy.misc
 
-class readwood_loader(object):
+class redwood_loader(object):
     def __init__(self, 
                  dataset_dir,
                  split,
