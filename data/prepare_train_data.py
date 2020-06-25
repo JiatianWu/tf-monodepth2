@@ -116,11 +116,13 @@ def main():
             for s in subfolders:
                 if s in ['nyu_fullRes', 'tum', 'redwood', 'robot_kinect']:
                     sub_root = dump_root + s
-                    ssubfolders = os.listdir(sub_root)
+                    ssubfolders = sorted(os.listdir(sub_root))
                     for ss in ssubfolders:
                         imfiles = glob(os.path.join(sub_root, ss, '*.jpg'))
                         frame_ids = [os.path.basename(fi)[:-4] for fi in imfiles]
                         for frame in frame_ids:
+                            if s is 'robot_kinect' and frame[:4] is '0000':
+                                continue
                             if np.random.random() < 0:
                                 vf.write('%s %s\n' % (s +'/' + ss, frame))
                             else:
