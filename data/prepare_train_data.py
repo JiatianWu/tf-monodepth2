@@ -117,14 +117,14 @@ def main():
                 if s in ['nyu_fullRes', 'tum', 'redwood']:
                     sub_root = dump_root + s
                     ssubfolders = os.listdir(sub_root)
-
-                    imfiles = glob(os.path.join(sub_root, ssubfolders, '*.jpg'))
-                    frame_ids = [os.path.basename(fi)[:-4] for fi in imfiles]
-                    for frame in frame_ids:
-                        if np.random.random() < 0:
-                            vf.write('%s %s\n' % (s, frame))
-                        else:
-                            tf.write('%s %s\n' % (s, frame))
+                    for ss in ssubfolders:
+                        imfiles = glob(os.path.join(sub_root, ss, '*.jpg'))
+                        frame_ids = [os.path.basename(fi)[:-4] for fi in imfiles]
+                        for frame in frame_ids:
+                            if np.random.random() < 0:
+                                vf.write('%s %s\n' % (s +'/' + ss, frame))
+                            else:
+                                tf.write('%s %s\n' % (s + '/' + ss, frame))
     import pdb; pdb.set_trace()
 
     global data_loader
