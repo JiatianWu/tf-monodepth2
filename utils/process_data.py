@@ -312,6 +312,16 @@ def rename_folder_image(folder):
         Image.open(folder + '/' + seq).save(folder + '/' + str(idx).zfill(6) + '.jpg')
         idx += 1
 
+def convert_rgb_folder(folder):
+    dirlist = sorted(os.listdir(folder))
+    for seq in dirlist:
+        print('Processing: ', seq)
+        imglist = sorted(os.listdir(folder + '/' + seq))
+        for img in imglist:
+            if '.jpg' in img:
+                img_path = folder + '/' + seq + '/' + img
+                Image.open(img_path).convert('RGB').save(img_path)
+ 
 def plot_trajectory(data_file_name):
     # data = open(data_file_name,"rb")
     # poses_log = pickle.load(data)
@@ -870,4 +880,5 @@ if __name__ == "__main__":
     # save_depth('/home/nod/datasets/robot/20200611/rgbd_gt_data_finetune')
     # read_depth('/home/nod/project/dso/build/depths_out/00007.png')
     # process_dso('/home/nod/project/dso/build/sample/000068.pkl')
-    eval_densify('/home/nod/project/dso/build/sample/00068_densify.pkl')
+    # eval_densify('/home/nod/project/dso/build/sample/00068_densify.pkl')
+    convert_rgb_folder('/home/jiatian/dataset/tum')
