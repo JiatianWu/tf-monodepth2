@@ -107,6 +107,26 @@ def main():
     if not os.path.exists(args.dump_root):
         os.makedirs(args.dump_root)
 
+    # Split into train/val
+    np.random.seed(8964)
+    dump_root = '/home/jiatian/dataset/'
+    subfolders = os.listdir(dump_root)
+    with open(dump_root + 'train.txt', 'w') as tf:
+        with open(dump_root + 'val.txt', 'w') as vf:
+            for s in subfolders:
+                if s in ['nyu_fullRes', 'tum', 'redwood']:
+                    sub_root = dump_root + s
+                    ssubfolders = os.listdir(sub_root)
+
+                    imfiles = glob(os.path.join(sub_root, ssubfolders, '*.jpg'))
+                    frame_ids = [os.path.basename(fi)[:-4] for fi in imfiles]
+                    for frame in frame_ids:
+                        if np.random.random() < 0:
+                            vf.write('%s %s\n' % (s, frame))
+                        else:
+                            tf.write('%s %s\n' % (s, frame))
+    import pdb; pdb.set_trace()
+
     global data_loader
     if args.dataset_name == 'kitti_odom':
         from kitti.kitti_odom_loader import kitti_odom_loader
