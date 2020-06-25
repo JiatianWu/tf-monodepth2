@@ -114,7 +114,7 @@ def main():
     with open(dump_root + 'train.txt', 'w') as tf:
         with open(dump_root + 'val.txt', 'w') as vf:
             for s in subfolders:
-                if s in ['nyu_fullRes', 'tum', 'redwood']:
+                if s in ['nyu_fullRes', 'tum', 'redwood', 'robot_kinect']:
                     sub_root = dump_root + s
                     ssubfolders = os.listdir(sub_root)
                     for ss in ssubfolders:
