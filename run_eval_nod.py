@@ -120,7 +120,8 @@ class App:
         return confidence_map
 
     def get_metrics(self, depth_map, depth_map_gt):
-        res_dict = eval_depth_nod(depth_map, depth_map_gt, self.depth_engine.min_depth, self.depth_engine.max_depth, 0.5977342578130507)
+        #res_dict = eval_depth_nod(depth_map, depth_map_gt, self.depth_engine.min_depth, self.depth_engine.max_depth, 0.5977342578130507)
+        res_dict = eval_depth_nod(depth_map, depth_map_gt, self.depth_engine.min_depth, self.depth_engine.max_depth, 1.0)
         s_gt_cover_ratio = 'Kinect depth cover ratio: ' + str(res_dict['gt_depth_cover_ratio']) + '%\n'
         s_pred_cover_ratio = 'Nod depth cover ratio: ' + str(res_dict['pred_depth_cover_ratio']) + '%\n'
         if self.show_cover_ratio_only:

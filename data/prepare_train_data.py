@@ -104,29 +104,45 @@ def dump_example(n, args):
         f.write('%f,0.,%f,0.,%f,%f,0.,0.,1.' % (fx, cx, fy, cy))
 
 def main():
-    if not os.path.exists(args.dump_root):
-        os.makedirs(args.dump_root)
+    # if not os.path.exists(args.dump_root):
+    #     os.makedirs(args.dump_root)
 
-    # Split into train/val
+    # # merge several datasets
+    # np.random.seed(8964)
+    # dump_root = '/home/jiatian/dataset/'
+    # subfolders = os.listdir(dump_root)
+    # with open(dump_root + 'train.txt', 'w') as tf:
+    #     with open(dump_root + 'val.txt', 'w') as vf:
+    #         for s in subfolders:
+    #             if s in ['nyu_fullRes', 'tum', 'redwood', 'robot_kinect']:
+    #                 sub_root = dump_root + s
+    #                 ssubfolders = sorted(os.listdir(sub_root))
+    #                 for ss in ssubfolders:
+    #                     imfiles = glob(os.path.join(sub_root, ss, '*.jpg'))
+    #                     frame_ids = [os.path.basename(fi)[:-4] for fi in imfiles]
+    #                     for frame in frame_ids:
+    #                         if s is 'robot_kinect' and frame[:4] is '0000':
+    #                             continue
+    #                         if np.random.random() < 0:
+    #                             vf.write('%s %s\n' % (s +'/' + ss, frame))
+    #                         else:
+    #                             tf.write('%s %s\n' % (s + '/' + ss, frame))
+
     np.random.seed(8964)
-    dump_root = '/home/jiatian/dataset/'
+    dump_root = '/home/nod/datasets/robot/20200611/train/'
     subfolders = os.listdir(dump_root)
     with open(dump_root + 'train.txt', 'w') as tf:
         with open(dump_root + 'val.txt', 'w') as vf:
             for s in subfolders:
-                if s in ['nyu_fullRes', 'tum', 'redwood', 'robot_kinect']:
-                    sub_root = dump_root + s
-                    ssubfolders = sorted(os.listdir(sub_root))
-                    for ss in ssubfolders:
-                        imfiles = glob(os.path.join(sub_root, ss, '*.jpg'))
-                        frame_ids = [os.path.basename(fi)[:-4] for fi in imfiles]
-                        for frame in frame_ids:
-                            if s is 'robot_kinect' and frame[:4] is '0000':
-                                continue
-                            if np.random.random() < 0:
-                                vf.write('%s %s\n' % (s +'/' + ss, frame))
-                            else:
-                                tf.write('%s %s\n' % (s + '/' + ss, frame))
+                imfiles = glob(os.path.join(dump_root + s, '*.jpg'))
+                frame_ids = [os.path.basename(fi)[:-4] for fi in imfiles]
+                for frame in frame_ids:
+                    if frame[:4] in ['0000', '0001']:
+                        continue
+                    if np.random.random() < 0:
+                        vf.write('%s %s\n' % (s, frame))
+                    else:
+                        tf.write('%s %s\n' % (s, frame))
     import pdb; pdb.set_trace()
 
     global data_loader
