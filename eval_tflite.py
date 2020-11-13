@@ -105,7 +105,7 @@ class DepthEstimation():
         print('----------------------------------------------------------------------------')
 
 if __name__ == '__main__':
-    model_file = 'saved_model/tflite_640_480_bilinear/saved_model_quant_edgetpu.tflite'
+    model_file = 'saved_model/tflite_640_480_bilinear/saved_model_quant.tflite'
     width = 640 #256
     height = 480 #192
     input_size = (width, height) # (width, height)

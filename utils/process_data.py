@@ -14,8 +14,8 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 import tensorflow as tf
 
-from bilateral_filter import bilateral_filter
-from tools import *
+# from bilateral_filter import bilateral_filter
+# from tools import *
 
 def debug_convert():
     img_path = '/home/jiatian/dataset/tum/sequence_01/000001.jpg'
@@ -840,6 +840,24 @@ def eval_densify(data_path):
     eval_densify_dict = eval_depth_nod(depth_densify, depth_gt, min_depth, max_depth, 1.0)
     print_eval_dict(eval_densify_dict)
 
+def vis_rgbd_pickle_image(folder_1, folder_2):
+    dirlist_1 = sorted(os.listdir(folder_1))
+    dirlist_2 = sorted(os.listdir(folder_2))
+    for idx in range(len(dirlist_1)):
+        datapath_1 = open(folder_1 + '/' + dirlist_1[idx], "rb")
+        data_1 = pickle.load(datapath_1)
+
+        rgb = data_1['rgb']
+        depth_image_tpu = vis_depth(data_1['depth_pred'])
+        depth_image_gt = vis_depth(data_1['depth_gt'])
+
+        datapath_2 = open(folder_2 + '/' + dirlist_2[idx], "rb")
+        depth_image_dpu = np.array(Image.open(datapath_2))[480:, :, :]
+        image_show = np.hstack((rgb, depth_image_gt, depth_image_dpu, depth_image_tpu))
+
+        img = Image.fromarray(image_show)
+        img.save('/home/nod/datasets/nyudepthV2/rgbd_tpu_dpu/' + dirlist_2[idx])
+
 if __name__ == "__main__":
     # resave_imu_data()
     # plot_acc_data('/home/jiatian/dataset/office_kitchen_0001a')
@@ -881,4 +899,5 @@ if __name__ == "__main__":
     # read_depth('/home/nod/project/dso/build/depths_out/00007.png')
     # process_dso('/home/nod/project/dso/build/sample/000068.pkl')
     # eval_densify('/home/nod/project/dso/build/sample/00068_densify.pkl')
-    convert_rgb_folder('/home/jiatian/dataset/tum')
+    # convert_rgb_folder('/home/jiatian/dataset/tum')
+    vis_rgbd_pickle_image("/home/nod/datasets/nyudepthV2/rgbd_gt_tpu_nopp_data", "/home/nod/project/vitis-ai/mpsoc/vitis-ai-tool-example/tf_eval_script/eval_res")
