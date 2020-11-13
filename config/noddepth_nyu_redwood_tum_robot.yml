@@ -19,8 +19,8 @@ model:
     batch_norm_epsilon: 1e-5
     pose_scale: 1e-2
     auto_mask: True
-    continue_ckpt: ''
-    #continue_ckpt: '/home/jiatian/project/tf-monodepth2/saved_model_nyu/0210_maxdepth10_2/model-1010306'
+    # continue_ckpt: ''
+    continue_ckpt: 'saved_model/ckpt_nod/0213_640_480/model-756002'
     #torch_res18_ckpt: ''
     torch_res18_ckpt: 'res_model_extractor/resnet18.npy'
     summary_freq: 200
