@@ -88,7 +88,7 @@ class SaveModel(object):
             net_builder = Net(False, **self.config)
 
             res18_tc, skips_tc = net_builder.build_resnet18(tgt_image_net)
-            pred_disp = net_builder.build_disp_net_bilinear(res18_tc, skips_tc)[0]
+            pred_disp = net_builder.build_disp_net(res18_tc, skips_tc)[0]
 
         self.pred_disp = tf.identity(pred_disp, name='output')
 

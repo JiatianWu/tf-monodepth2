@@ -17,6 +17,7 @@ import tensorflow as tf
 # from bilateral_filter import bilateral_filter
 # from tools import *
 
+
 def debug_convert():
     img_path = '/home/jiatian/dataset/tum/sequence_01/000001.jpg'
     img = tf.read_file(img_path)
@@ -28,12 +29,14 @@ def debug_convert():
         np_img_v1 = sess.run(img_v1)
         np_img_v2 = sess.run(img_v2)
 
+
 def read_imu_data():
     data_path = '/home/jiatian/dataset/office_kitchen_0001a/a-1315403270.593277-3849079182.dump'
     # with open(data_path, 'rb') as f:
     #     data = pickle.load(f)
     f = open(data_path, 'r')
     pdb.set_trace()
+
 
 def resave_imu_data():
     dataset = '/freezer/nyudepthV2_raw'
@@ -46,9 +49,11 @@ def resave_imu_data():
                 resave_imu_data_path = seq_dir + '/' + data[:-4] + '.txt'
                 call_resave_imu(imu_data_path, resave_imu_data_path)
 
+
 def call_resave_imu(orig_path, resave_path):
     command = './resave_imu ' + orig_path + ' ' + resave_path
     os.system(command)
+
 
 def collect_acc_data(folder):
     data_list = []
@@ -58,8 +63,10 @@ def collect_acc_data(folder):
 
     return sorted(data_list)
 
+
 def get_acc_timestamp(path):
     return float(path.split('-')[1])
+
 
 def read_acc_data(file_path):
     timestamp = get_acc_timestamp(file_path)
@@ -70,6 +77,7 @@ def read_acc_data(file_path):
 
     data.insert(0, timestamp)
     return data
+
 
 def plot_acc_data(folder):
     acc_path = collect_acc_data(folder)
@@ -86,6 +94,7 @@ def plot_acc_data(folder):
     plt.plot(z)
     plt.show()
 
+
 def compute_acc_vel_pos(acc_data_1, acc_data_2, v_1, p_1):
     t1 = acc_data_1[0]
     t2 = acc_data_2[0]
@@ -99,6 +108,7 @@ def compute_acc_vel_pos(acc_data_1, acc_data_2, v_1, p_1):
 
     # pdb.set_trace()
     return v_2, p_2
+
 
 def plot_imu_traj(folder):
     acc_path = collect_acc_data(folder)
@@ -134,27 +144,32 @@ def plot_imu_traj(folder):
     # plt.plot(p_z)
     # plt.show()
 
+
 def read_amazon_data(data_file_name):
-    data = open(data_file_name,"rb")
+    data = open(data_file_name, "rb")
     rgbd = pickle.load(data)
     rgb = rgbd['rgb']
 
     rgb_new = np.zeros(rgb.shape, dtype=np.uint8)
-    xx, yy = np.meshgrid(np.arange(0, 640, 1), np.arange(0, 480, 1), sparse=False)
+    xx, yy = np.meshgrid(np.arange(0, 640, 1),
+                         np.arange(0, 480, 1), sparse=False)
     for i in range(0, 640, 1):
         for j in range(0, 480, 1):
             x_std, y_std = wrap_pixel(float(i), float(j))
             x_std = round(x_std)
             y_std = round(y_std)
-            if x_std >= 0 and x_std <= (640 -1) and y_std >= 0 and y_std <= (480 -1):
+            if x_std >= 0 and x_std <= (640 - 1) and y_std >= 0 and y_std <= (480 - 1):
                 rgb_new[y_std, x_std, :] = rgb[j, i, :]
 
     plt.imshow(np.hstack((rgb, rgb_new)))
     plt.show(block=True)
 
+
 def wrap_pixel(x, y):
-    [fx_orig, fy_orig, cx_orig, cy_orig] = [400.516317, 400.410970, 320.171183, 243.274495]
-    [fx_std, fy_std, cx_std, cy_std] = [518.857901, 519.469611, 325.582449, 253.736166]
+    [fx_orig, fy_orig, cx_orig, cy_orig] = [
+        400.516317, 400.410970, 320.171183, 243.274495]
+    [fx_std, fy_std, cx_std, cy_std] = [
+        518.857901, 519.469611, 325.582449, 253.736166]
     x_norm = (x - cx_orig) / fx_orig
     y_norm = (y - cy_orig) / fy_orig
     x_std = fx_std * x_norm + cx_std
@@ -162,15 +177,18 @@ def wrap_pixel(x, y):
 
     return x_std, y_std
 
+
 def vis_depth(depth_map):
     vmax = np.percentile(depth_map, 90)
     vmin = depth_map.min()
     normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     mapper = mpl.cm.ScalarMappable(norm=normalizer, cmap='viridis')
 
-    colormapped_im = (mapper.to_rgba(depth_map)[:, :, :3][:,:,::-1] * 255).astype(np.uint8)
+    colormapped_im = (mapper.to_rgba(depth_map)[
+                      :, :, :3][:, :, ::-1] * 255).astype(np.uint8)
 
     return colormapped_im[:, :, ::-1]
+
 
 def vis_float_image(folder):
     seqs = sorted(os.listdir(folder))
@@ -182,38 +200,45 @@ def vis_float_image(folder):
             fs = cv2.FileStorage(image_path, cv2.FILE_STORAGE_READ)
             image = fs.getNode('depth_map').mat()
 
-            rgb_image = np.array(Image.open('/home/jiatianwu/eval/eval_data/' + seq[:-4] + '.jpg'))
+            rgb_image = np.array(Image.open(
+                '/home/jiatianwu/eval/eval_data/' + seq[:-4] + '.jpg'))
             # image_bf = bilateral_filter(rgb_image, image)
             image_bf = image
             depth_image = vis_depth(image_bf)
             image_save = np.vstack((rgb_image, depth_image))
-            Image.fromarray(image_save).save('/home/jiatianwu/eval/eval_comp/' + seq[:-4] + '.jpg')
+            Image.fromarray(image_save).save(
+                '/home/jiatianwu/eval/eval_comp/' + seq[:-4] + '.jpg')
             # plt.imshow(vis_depth(image))
             # plt.show()
 
         idx += 1
+
 
 def vis_zcu_image(folder):
     seqs = sorted(os.listdir(folder))
     idx = 0
     for seq in seqs:
         data_path = folder + '/' + seq
-        data = open(data_path,"rb")
+        data = open(data_path, "rb")
         rgbd = pickle.load(data)
 
         rgb = rgbd['rgb']
         depth_image = rgbd['depth']
         depth_tflite_image = rgbd['tflite']
         depth_vitis_image = rgbd['vitis']
-        image_show = np.vstack((rgb, depth_image, depth_tflite_image, depth_vitis_image))
+        image_show = np.vstack(
+            (rgb, depth_image, depth_tflite_image, depth_vitis_image))
 
         img = Image.fromarray(image_show)
         draw = ImageDraw.Draw(img)
         font = ImageFont.truetype("Agane.ttf", 32)
-        draw.text((0, 0),"RGB Image",(255,0,0),font=font)
-        draw.text((0, 480),"Depth Image before Quantization",(255,0,0),font=font)
-        draw.text((0, 960),"Depth Image post-quantization \n EdgeTPU",(255,0,0),font=font)
-        draw.text((0, 1440),"Depth Image post-quantization \n DPU",(255,0,0),font=font)
+        draw.text((0, 0), "RGB Image", (255, 0, 0), font=font)
+        draw.text((0, 480), "Depth Image before Quantization",
+                  (255, 0, 0), font=font)
+        draw.text((0, 960), "Depth Image post-quantization \n EdgeTPU",
+                  (255, 0, 0), font=font)
+        draw.text((0, 1440), "Depth Image post-quantization \n DPU",
+                  (255, 0, 0), font=font)
         img.save('saved_images/' + str(idx).zfill(6) + '.jpg')
         # plt.imshow(image_show)
         # plt.show(block=False)
@@ -223,21 +248,25 @@ def vis_zcu_image(folder):
 
         idx += 1
 
+
 def process_tello(folder):
     seqs = sorted(os.listdir(folder))
     for idx in range(0, len(seqs), 5):
         data_path = folder + '/' + str(idx).zfill(6) + '.jpg'
         image = Image.open(data_path).resize((640, 480))
-        image.save('/home/jiatianwu/dataset/tello_vga/' + str(int(idx/5)).zfill(6) + '.jpg')
+        image.save('/home/jiatianwu/dataset/tello_vga/' +
+                   str(int(idx/5)).zfill(6) + '.jpg')
 
         data_dict = {'rgb': np.array(image)}
-        dict_file_name = '/home/jiatianwu/dataset/tello_pickle/' + str(int(idx/5)).zfill(6) + '.pkl'
-        f = open(dict_file_name,"wb")
-        pickle.dump(data_dict,f)
+        dict_file_name = '/home/jiatianwu/dataset/tello_pickle/' + \
+            str(int(idx/5)).zfill(6) + '.pkl'
+        f = open(dict_file_name, "wb")
+        pickle.dump(data_dict, f)
         f.close()
 
+
 def vis_pickle_image(data_path):
-    data = open(data_path,"rb")
+    data = open(data_path, "rb")
     rgbd = pickle.load(data)
 
     rgb = rgbd['rgb']
@@ -250,13 +279,14 @@ def vis_pickle_image(data_path):
     # font = ImageFont.truetype(<font-file>, <font-size>)
     font = ImageFont.truetype("Agane.ttf", 32)
     # draw.text((x, y),"Sample Text",(r,g,b))
-    draw.text((0, 0),"Sample Text",(255,0,0),font=font)
-    draw.text((0, 480),"Sample Text",(255,0,0),font=font)
-    draw.text((0, 960),"Sample Text",(255,0,0),font=font)
+    draw.text((0, 0), "Sample Text", (255, 0, 0), font=font)
+    draw.text((0, 480), "Sample Text", (255, 0, 0), font=font)
+    draw.text((0, 960), "Sample Text", (255, 0, 0), font=font)
     img.save('sample-out.jpg')
 
     # plt.imshow(image_show)
     # plt.show(block=True)
+
 
 def vis_folder(folder):
     dirlist = sorted(os.listdir(folder))
@@ -271,6 +301,7 @@ def vis_folder(folder):
 
     plt.close()
 
+
 def vis_image(path):
     image = Image.open(path)
     image = image.crop((0, 0, 1223, 699)).resize((608, 352))
@@ -280,6 +311,7 @@ def vis_image(path):
     plt.show(block=True)
     plt.close()
 
+
 def vis_image_crop(path):
     image = Image.open(path)
     image = image.crop((0, 100, 1500, 900))
@@ -288,6 +320,7 @@ def vis_image_crop(path):
     plt.imshow(image)
     plt.show(block=True)
     plt.close()
+
 
 def rename_folder(folder):
     dirlist = sorted(os.listdir(folder))
@@ -302,15 +335,19 @@ def rename_folder_util(folder):
     dirlist = sorted(os.listdir(folder))
     idx = 0
     for seq in dirlist:
-        os.rename(folder + '/' + seq, folder + '/' + str(idx).zfill(6) + '.jpg')
+        os.rename(folder + '/' + seq, folder +
+                  '/' + str(idx).zfill(6) + '.jpg')
         idx += 1
+
 
 def rename_folder_image(folder):
     dirlist = sorted(os.listdir(folder))
     idx = 0
     for seq in dirlist:
-        Image.open(folder + '/' + seq).save(folder + '/' + str(idx).zfill(6) + '.jpg')
+        Image.open(folder + '/' + seq).save(folder +
+                                            '/' + str(idx).zfill(6) + '.jpg')
         idx += 1
+
 
 def convert_rgb_folder(folder):
     dirlist = sorted(os.listdir(folder))
@@ -321,7 +358,8 @@ def convert_rgb_folder(folder):
             if '.jpg' in img:
                 img_path = folder + '/' + seq + '/' + img
                 Image.open(img_path).convert('RGB').save(img_path)
- 
+
+
 def plot_trajectory(data_file_name):
     # data = open(data_file_name,"rb")
     # poses_log = pickle.load(data)
@@ -339,7 +377,8 @@ def plot_trajectory(data_file_name):
     # save_path = '/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/xyz_log.npy'
     # np.save(save_path, xyzs)
 
-    xyzs = np.load('/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/xyz_log.npy')
+    xyzs = np.load(
+        '/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/xyz_log.npy')
 
     xs = []
     ys = []
@@ -350,16 +389,21 @@ def plot_trajectory(data_file_name):
         zs.append(xyzs[i][2])
 
         plt.plot(xs, ys)
-        plt.savefig('/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/' + str(i).zfill(6) + '.jpg')
+        plt.savefig(
+            '/home/nod/datasets/kitti_eval_1/2011_09_26_drive_0022_sync_02/' + str(i).zfill(6) + '.jpg')
 
 
 def vis_depth_pose(folder_depth, folder_pose):
     for i in range(792):
-        depth_image = np.array(Image.open(folder_depth + '/' + str(i).zfill(6) + '.jpg'))
-        pose_image = np.array(Image.open(folder_pose + '/' + str(i).zfill(6) + '.jpg'))
+        depth_image = np.array(Image.open(
+            folder_depth + '/' + str(i).zfill(6) + '.jpg'))
+        pose_image = np.array(Image.open(
+            folder_pose + '/' + str(i).zfill(6) + '.jpg'))
 
         tosave_image = np.vstack((depth_image, pose_image))
-        Image.fromarray(tosave_image).save('/home/nod/datasets/kitti_eval_1/save_images/' + '/' + str(i).zfill(6) + '.jpg')
+        Image.fromarray(tosave_image).save(
+            '/home/nod/datasets/kitti_eval_1/save_images/' + '/' + str(i).zfill(6) + '.jpg')
+
 
 def save_nyu_indoor_images(folder):
     dirlist = sorted(os.listdir(folder))
@@ -369,6 +413,7 @@ def save_nyu_indoor_images(folder):
         image = Image.open(image_path).crop((0, 0, 640, 480))
         image.save('/home/nod/tmp/' + str(step).zfill(6) + '.jpg')
         step += 1
+
 
 def viz_resize(folder):
     dirlist = sorted(os.listdir(folder))
@@ -380,6 +425,7 @@ def viz_resize(folder):
 
         plt.imshow(np.vstack((np.array(image), np.array(image_dist))))
         plt.show(block=True)
+
 
 def read_process_nyu_data(path):
     hf = h5py.File(path, 'r')
@@ -397,10 +443,12 @@ def read_process_nyu_data(path):
         depth = np.transpose(depth, (1, 0))
 
         data_dict = {'rgb': image, 'depth_gt': depth}
-        data_file_name = '/home/nod/datasets/nyudepthV2/rgbd_data_gt/' + str(idx).zfill(6) + '.pkl'
-        f = open(data_file_name,"wb")
-        pickle.dump(data_dict,f)
+        data_file_name = '/home/nod/datasets/nyudepthV2/rgbd_data_gt/' + \
+            str(idx).zfill(6) + '.pkl'
+        f = open(data_file_name, "wb")
+        pickle.dump(data_dict, f)
         f.close()
+
 
 def generate_pointcloud(rgb, depth, intrinsics=None, ply_file=None):
     points = []
@@ -414,7 +462,7 @@ def generate_pointcloud(rgb, depth, intrinsics=None, ply_file=None):
         for u in range(rgb.shape[1]):
             color = rgb[v, u, :]
             Z = depth[v, u]
-            if Z==0:
+            if Z == 0:
                 continue
             if intrinsics is not None:
                 X = (u - cx) * Z / fx
@@ -422,8 +470,9 @@ def generate_pointcloud(rgb, depth, intrinsics=None, ply_file=None):
             else:
                 X = u
                 Y = v
-            points.append("%f %f %f %d %d %d 0\n"%(X,Y,Z,color[0],color[1],color[2]))
-    file = open(ply_file,"w")
+            points.append("%f %f %f %d %d %d 0\n" %
+                          (X, Y, Z, color[0], color[1], color[2]))
+    file = open(ply_file, "w")
     file.write('''ply
                 format ascii 1.0
                 element vertex %d
@@ -436,15 +485,16 @@ def generate_pointcloud(rgb, depth, intrinsics=None, ply_file=None):
                 property uchar alpha
                 end_header
                 %s
-                '''%(len(points),"".join(points)))
+                ''' % (len(points), "".join(points)))
     file.close()
+
 
 def generate_pc_nyudepth(input_folder, output_folder):
     P_rect = np.eye(3, 3)
-    P_rect[0,0] = 5.1885790117450188e+02
-    P_rect[0,2] = 3.2558244941119034e+02
-    P_rect[1,1] = 5.1946961112127485e+02
-    P_rect[1,2] = 2.5373616633400465e+02
+    P_rect[0, 0] = 5.1885790117450188e+02
+    P_rect[0, 2] = 3.2558244941119034e+02
+    P_rect[1, 1] = 5.1946961112127485e+02
+    P_rect[1, 2] = 2.5373616633400465e+02
 
     build_output_dir(output_folder)
     dirlist = sorted(os.listdir(input_folder))
@@ -452,11 +502,11 @@ def generate_pc_nyudepth(input_folder, output_folder):
     for seq in dirlist:
         print('Processing idx: ', step)
         data_path = input_folder + '/' + seq
-        data = open(data_path,"rb")
+        data = open(data_path, "rb")
         data_dict = pickle.load(data)
 
         rgb = data_dict['rgb']
-        depth_pred = data_dict['depth_pred'] * 0.002505729166737338 
+        depth_pred = data_dict['depth_pred'] * 0.002505729166737338
         depth_gt = data_dict['depth_gt']
 
         # pc_pred_path = output_folder + '/' + str(step).zfill(6) + '.ply'
@@ -465,6 +515,7 @@ def generate_pc_nyudepth(input_folder, output_folder):
         generate_pointcloud(rgb, depth_gt, P_rect, ply_file=pc_gt_path)
         step += 1
 
+
 def generate_pc_media(input_folder, output_folder):
     build_output_dir(output_folder)
     dirlist = sorted(os.listdir(input_folder))
@@ -472,22 +523,24 @@ def generate_pc_media(input_folder, output_folder):
     for seq in dirlist:
         print('Processing idx: ', step)
         data_path = input_folder + '/' + seq
-        data = open(data_path,"rb")
+        data = open(data_path, "rb")
         data_dict = pickle.load(data)
 
         rgb = data_dict['rgb']
         depth_pred = data_dict['depth']
 
         pc_pred_path = output_folder + '/' + str(step).zfill(6) + '.ply'
-        generate_pointcloud(rgb, depth_pred, intrinsics=None, ply_file=pc_pred_path)
+        generate_pointcloud(rgb, depth_pred, intrinsics=None,
+                            ply_file=pc_pred_path)
         step += 1
+
 
 def generate_pc_media_intrinsics(input_folder, output_folder):
     P_rect = np.eye(3, 3)
-    P_rect[0,0] = 296.91973631
-    P_rect[0,2] = 321.97504478
-    P_rect[1,1] = 297.37056543
-    P_rect[1,2] = 225.25890346
+    P_rect[0, 0] = 296.91973631
+    P_rect[0, 2] = 321.97504478
+    P_rect[1, 1] = 297.37056543
+    P_rect[1, 2] = 225.25890346
 
     build_output_dir(output_folder)
     dirlist = sorted(os.listdir(input_folder))
@@ -495,22 +548,24 @@ def generate_pc_media_intrinsics(input_folder, output_folder):
     for seq in dirlist:
         print('Processing idx: ', step)
         data_path = input_folder + '/' + seq
-        data = open(data_path,"rb")
+        data = open(data_path, "rb")
         data_dict = pickle.load(data)
 
         rgb = data_dict['rgb']
         depth_pred = data_dict['depth']
 
         pc_pred_path = output_folder + '/' + str(step).zfill(6) + '.ply'
-        generate_pointcloud(rgb, depth_pred, intrinsics=P_rect, ply_file=pc_pred_path)
+        generate_pointcloud(
+            rgb, depth_pred, intrinsics=P_rect, ply_file=pc_pred_path)
         step += 1
+
 
 def generate_pc_kinect(input_folder, output_folder):
     P_rect = np.eye(3, 3)
-    P_rect[0,0] = 400.516317
-    P_rect[0,2] = 320.171183
-    P_rect[1,1] = 400.410970
-    P_rect[1,2] = 243.274495
+    P_rect[0, 0] = 400.516317
+    P_rect[0, 2] = 320.171183
+    P_rect[1, 1] = 400.410970
+    P_rect[1, 2] = 243.274495
 
     # build_output_dir(output_folder)
     # dirlist = sorted(os.listdir(input_folder))
@@ -532,9 +587,12 @@ def generate_pc_kinect(input_folder, output_folder):
     #     step += 1
 
     rgb = np.array(Image.open('/home/nod/project/dso/build/sample/00068.jpg'))
-    depth_pred = np.array(Image.open('/home/nod/project/dso/build/sample/00023.png')) * 6.66
+    depth_pred = np.array(Image.open(
+        '/home/nod/project/dso/build/sample/00023.png')) * 6.66
     pc_pred_path = '/home/nod/project/dso/build/sample/00068.ply'
-    generate_pointcloud(rgb, depth_pred, intrinsics=P_rect, ply_file=pc_pred_path)
+    generate_pointcloud(rgb, depth_pred, intrinsics=P_rect,
+                        ply_file=pc_pred_path)
+
 
 def build_output_dir(output_dir):
     try:
@@ -543,6 +601,7 @@ def build_output_dir(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
     return output_dir
+
 
 def crop_folder(folder, output_dir):
     idx = 0
@@ -562,9 +621,12 @@ def crop_folder(folder, output_dir):
         idx += 1
     # plt.close()
 
+
 def readmat(filepath):
     annots = loadmat(filepath)
-    import pdb; pdb.set_trace()
+    import pdb
+    pdb.set_trace()
+
 
 def save_nyu_eval_image(filepath):
     f = h5py.File(filepath)
@@ -577,7 +639,9 @@ def save_nyu_eval_image(filepath):
         image = image_source[idx]
         image = np.transpose(image, (2, 1, 0))
 
-        Image.fromarray(image).save('/home/nod/datasets/nyudepthV2/eval_data/' + str(idx).zfill(6) + '.jpg')
+        Image.fromarray(image).save(
+            '/home/nod/datasets/nyudepthV2/eval_data/' + str(idx).zfill(6) + '.jpg')
+
 
 def comp_nod_sgm(nod_folder, sgm_folder):
     nod_dirlist = sorted(os.listdir(nod_folder))
@@ -591,33 +655,39 @@ def comp_nod_sgm(nod_folder, sgm_folder):
         nod_pred_image = nod_image[:, 640:, :]
         sgm_rgb_image = sgm_image[:, :1280, :]
         sgm_depth_image = sgm_image[:, 1280:, :]
-        toshow_image = np.vstack((sgm_rgb_image, np.hstack((nod_pred_image, sgm_depth_image))))
+        toshow_image = np.vstack(
+            (sgm_rgb_image, np.hstack((nod_pred_image, sgm_depth_image))))
 
         img = Image.fromarray(toshow_image)
         draw = ImageDraw.Draw(img)
         # font = ImageFont.truetype(<font-file>, <font-size>)
         font = ImageFont.truetype("Agane.ttf", 36)
         # draw.text((x, y),"Sample Text",(r,g,b))
-        draw.text((0, 0),"RGB Left",(255,0,0),font=font)
-        draw.text((640, 0),"RGB Right",(255,0,0),font=font)
-        draw.text((0, 480),"Nod Depth",(255,0,0),font=font)
-        draw.text((640, 480),"SGBM",(255,0,0),font=font)
-        img.save('/home/nod/datasets/weanhall/comp/' + str(idx).zfill(6) + '.jpg')
+        draw.text((0, 0), "RGB Left", (255, 0, 0), font=font)
+        draw.text((640, 0), "RGB Right", (255, 0, 0), font=font)
+        draw.text((0, 480), "Nod Depth", (255, 0, 0), font=font)
+        draw.text((640, 480), "SGBM", (255, 0, 0), font=font)
+        img.save('/home/nod/datasets/weanhall/comp/' +
+                 str(idx).zfill(6) + '.jpg')
 
 
 def rename_folder_weanhall(folder):
     dirlist = sorted(os.listdir(folder))
     idx = 0
     for seq in dirlist:
-        os.rename(folder + '/' + seq, folder + '/' + str(idx).zfill(6) +'.jpg')
-        idx +=1
+        os.rename(folder + '/' + seq, folder +
+                  '/' + str(idx).zfill(6) + '.jpg')
+        idx += 1
+
 
 def rename_folder_tum(folder):
     dirlist = sorted(os.listdir(folder))
     idx = 0
     for seq in dirlist:
-        os.rename(folder + '/' + seq, folder + '/' + str(idx).zfill(5) +'.jpg')
-        idx +=1
+        os.rename(folder + '/' + seq, folder +
+                  '/' + str(idx).zfill(5) + '.jpg')
+        idx += 1
+
 
 def add_metrics_weanhall(nod_folder, sgm_folder, image_folder=None):
     path = image_folder
@@ -637,11 +707,11 @@ def add_metrics_weanhall(nod_folder, sgm_folder, image_folder=None):
         nod_data_path = nod_folder + '/' + str(idx).zfill(6) + '.pkl'
         sgm_data_path = sgm_folder + '/' + str(idx).zfill(6) + '.pkl'
 
-        nod_data = open(nod_data_path,"rb")
+        nod_data = open(nod_data_path, "rb")
         nod_data_dict = pickle.load(nod_data)
         nod_depth = nod_data_dict['depth']
 
-        sgm_data = open(sgm_data_path,"rb")
+        sgm_data = open(sgm_data_path, "rb")
         sgm_data_dict = pickle.load(sgm_data)
         sgm_depth = sgm_data_dict['depth']
 
@@ -653,28 +723,36 @@ def add_metrics_weanhall(nod_folder, sgm_folder, image_folder=None):
         nod_depth_image = vis_depth(nod_depth)
         sgm_depth_image = vis_depth(sgm_depth, percent=70)
 
-        toshow_image = np.vstack((np.hstack((image_left, image_right)), np.hstack((nod_depth_image, sgm_depth_image))))
+        toshow_image = np.vstack((np.hstack((image_left, image_right)), np.hstack(
+            (nod_depth_image, sgm_depth_image))))
 
         res_dict = eval_depth_nod(nod_depth, sgm_depth, 0.1, 10)
 
-        s_gt_cover_ratio = 'SGM cover ratio: ' + str(res_dict['gt_depth_cover_ratio']) + '%\n'
-        s_pred_cover_ratio = 'NodDepth cover ratio: ' + str(res_dict['pred_depth_cover_ratio']) + '%\n'
+        s_gt_cover_ratio = 'SGM cover ratio: ' + \
+            str(res_dict['gt_depth_cover_ratio']) + '%\n'
+        s_pred_cover_ratio = 'NodDepth cover ratio: ' + \
+            str(res_dict['pred_depth_cover_ratio']) + '%\n'
 
-        s_abs_rel = 'Absolute relative error: ' + '{:f}'.format(res_dict['abs_rel']) + '\n'
-        s_sq_rel = 'Square relative error: ' + '{:f}'.format(res_dict['sq_rel']) + 'm\n'
-        s_rms_99 = '99% Root mean squred error: ' + '{:f}'.format(res_dict['rms_99']) + 'm\n'
-        s_rms_95 = '95% Root mean squred error: ' + '{:f}'.format(res_dict['rms_95']) + 'm\n'
-        s_viz = s_gt_cover_ratio + s_pred_cover_ratio + s_abs_rel + s_sq_rel + s_rms_99 + s_rms_95
+        s_abs_rel = 'Absolute relative error: ' + \
+            '{:f}'.format(res_dict['abs_rel']) + '\n'
+        s_sq_rel = 'Square relative error: ' + \
+            '{:f}'.format(res_dict['sq_rel']) + 'm\n'
+        s_rms_99 = '99% Root mean squred error: ' + \
+            '{:f}'.format(res_dict['rms_99']) + 'm\n'
+        s_rms_95 = '95% Root mean squred error: ' + \
+            '{:f}'.format(res_dict['rms_95']) + 'm\n'
+        s_viz = s_gt_cover_ratio + s_pred_cover_ratio + \
+            s_abs_rel + s_sq_rel + s_rms_99 + s_rms_95
 
         img = Image.fromarray(toshow_image)
         draw = ImageDraw.Draw(img)
         # font = ImageFont.truetype(<font-file>, <font-size>)
         font = ImageFont.truetype("Agane.ttf", 36)
         # draw.text((x, y),"Sample Text",(r,g,b))
-        draw.text((0, 0),"RGB Left",(255,0,0),font=font)
-        draw.text((640, 0),"RGB Right",(255,0,0),font=font)
-        draw.text((0, 480),"Nod Depth",(255,0,0),font=font)
-        draw.text((640, 480),"SGBM",(255,0,0),font=font)
+        draw.text((0, 0), "RGB Left", (255, 0, 0), font=font)
+        draw.text((640, 0), "RGB Right", (255, 0, 0), font=font)
+        draw.text((0, 480), "Nod Depth", (255, 0, 0), font=font)
+        draw.text((640, 480), "SGBM", (255, 0, 0), font=font)
 
         plt.imshow(np.array(img))
         plt.text(-550, 200, s_viz, fontsize=14)
@@ -682,16 +760,18 @@ def add_metrics_weanhall(nod_folder, sgm_folder, image_folder=None):
         # plt.title('    Kinect Raw Input                           Nod Depth                          Kinect Depth', fontsize=24, loc='left')
         plt.show(block=False)
         plt.pause(0.01)
-        plt.savefig('/home/nod/datasets/weanhall/eval_metrics/' + str(idx).zfill(6) + '.jpg')
+        plt.savefig('/home/nod/datasets/weanhall/eval_metrics/' +
+                    str(idx).zfill(6) + '.jpg')
         plt.clf()
 
         # image.save('/home/nod/datasets/weanhall/comp_metrics_v2/' + str(idx - 1900).zfill(6) + '.jpg')
+
 
 def viz_rgbd(folder):
     dirlist = sorted(os.listdir(folder))
     for seq in dirlist:
         data_path = folder + '/' + seq
-        data = open(data_path,"rb")
+        data = open(data_path, "rb")
         data_dict = pickle.load(data)
         rgb = data_dict['rgb']
         depth = data_dict['depth_pred'] * 1000
@@ -700,31 +780,36 @@ def viz_rgbd(folder):
         # r = rgb[:, :, 0]
         toshow_image = np.hstack((depth, depth_gt))
         plt.imshow(toshow_image)
-        plt.show(block = True)
+        plt.show(block=True)
+
 
 def save_rgb(folder):
     dirlist = sorted(os.listdir(folder))
     idx = 0
     for seq in dirlist:
         data_path = folder + '/' + seq
-        data = open(data_path,"rb")
+        data = open(data_path, "rb")
         data_dict = pickle.load(data)
         rgb = data_dict['rgb']
 
-        Image.fromarray(rgb).save('/home/nod/datasets/robot/20200611/dso/images/' + str(idx).zfill(5) + '.jpg')
+        Image.fromarray(rgb).save(
+            '/home/nod/datasets/robot/20200611/dso/images/' + str(idx).zfill(5) + '.jpg')
         idx += 1
+
 
 def save_depth(folder):
     dirlist = sorted(os.listdir(folder))
     idx = 0
     for seq in dirlist:
         data_path = folder + '/' + seq
-        data = open(data_path,"rb")
+        data = open(data_path, "rb")
         data_dict = pickle.load(data)
         depth = np.uint16(data_dict['depth_pred'] * 1000)
 
-        Image.fromarray(depth).save('/home/nod/tmp/' + str(idx).zfill(5) + '.png')
+        Image.fromarray(depth).save(
+            '/home/nod/tmp/' + str(idx).zfill(5) + '.png')
         idx += 1
+
 
 def process_kitti_data(folder):
     dirlist = sorted(os.listdir(folder))
@@ -737,30 +822,32 @@ def process_kitti_data(folder):
                 image = np.array(Image.open(image_path))[:, 640:1280, :]
                 Image.fromarray(image).save(image_path)
 
+
 def merge_pickle_data(folder_1, folder_2):
     dirlist = sorted(os.listdir(folder_1))
     for file in dirlist:
         data_path_1 = folder_1 + '/' + file
         data_path_2 = folder_2 + '/' + file
 
-        data_1 = open(data_path_1,"rb")
+        data_1 = open(data_path_1, "rb")
         data_dict_1 = pickle.load(data_1)
 
         rgb = data_dict_1['rgb']
         depth_pred = data_dict_1['depth']
 
-        data_2 = open(data_path_2,"rb")
+        data_2 = open(data_path_2, "rb")
         data_dict_2 = pickle.load(data_2)
         depth_gt = data_dict_2['depth_gt'][:, 640:1280]
 
-        data_dict = {'rgb':rgb,
-                     'depth_pred':depth_pred,
+        data_dict = {'rgb': rgb,
+                     'depth_pred': depth_pred,
                      'depth_gt': depth_gt}
 
         dict_file_name = '/home/nod/datasets/robot/20200611/rgbd_gt_data/' + file
-        f = open(dict_file_name,"wb")
+        f = open(dict_file_name, "wb")
         pickle.dump(data_dict, f)
         f.close()
+
 
 def flip_array(image_path):
     image = np.array(Image.open(image_path))
@@ -769,23 +856,28 @@ def flip_array(image_path):
     plt.imshow(np.vstack((image, image_flip_lr)))
     plt.show(block=True)
 
+
 def read_confidence(image_path):
     image = np.array(Image.open(image_path))
+
 
 def read_depth(image_path):
     image = np.array(Image.open(image_path))
     # image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-    import pdb; pdb.set_trace()
+    import pdb
+    pdb.set_trace()
+
 
 def process_dso(data_path):
-    data = open(data_path,"rb")
+    data = open(data_path, "rb")
     data_dict = pickle.load(data)
 
     rgb = data_dict['rgb']
     depth_pred = data_dict['depth_pred'] * 1000
     depth_gt = data_dict['depth_gt']
 
-    depth_dso = np.array(Image.open('/home/nod/project/dso/build/sample/00023.png'))
+    depth_dso = np.array(Image.open(
+        '/home/nod/project/dso/build/sample/00023.png'))
 
     # toshow_image = np.hstack((depth_dso, depth_gt))
     # plt.imshow(toshow_image)
@@ -807,8 +899,9 @@ def process_dso(data_path):
     # Image.fromarray(depth_dso_image).save('/home/nod/project/dso/build/sample/depth_dso.png')
     # Image.fromarray(depth_pred_image).save('/home/nod/project/dso/build/sample/depth_pred.png')
 
+
 def eval_densify(data_path):
-    data = open(data_path,"rb")
+    data = open(data_path, "rb")
     data_dict = pickle.load(data)
 
     # pdb.set_trace()
@@ -824,21 +917,26 @@ def eval_densify(data_path):
     depth_gt_image = vis_depth(depth_gt)
     # plt.title('    Nod Depth                             DSO Depth                          Densified DSO                Kinect Depth', fontsize=20, loc='left')
     # plt.imshow(np.hstack((depth_pred_image, depth_dso_image, depth_densify_image, depth_gt_image)))
-    plt.title('    Nod Depth                  Densified DSO              Kinect Depth', fontsize=12, loc='left')
+    plt.title('    Nod Depth                  Densified DSO              Kinect Depth',
+              fontsize=12, loc='left')
     plt.imshow(np.hstack((depth_pred, depth_densify, depth_gt)))
     plt.show(block=True)
 
     min_depth = 0.1
     max_depth = 10
     print('------------------EVAL Depth Model------------------')
-    eval_pred_dict = eval_depth_nod(depth_pred, depth_gt, min_depth, max_depth, 1.0)
+    eval_pred_dict = eval_depth_nod(
+        depth_pred, depth_gt, min_depth, max_depth, 1.0)
     print_eval_dict(eval_pred_dict)
     print('------------------EVAL DSO------------------')
-    eval_dso_dict = eval_depth_nod(depth_dso, depth_gt, min_depth, max_depth, 1.0)
+    eval_dso_dict = eval_depth_nod(
+        depth_dso, depth_gt, min_depth, max_depth, 1.0)
     print_eval_dict(eval_dso_dict)
     print('------------------EVAL Densified DSO------------------')
-    eval_densify_dict = eval_depth_nod(depth_densify, depth_gt, min_depth, max_depth, 1.0)
+    eval_densify_dict = eval_depth_nod(
+        depth_densify, depth_gt, min_depth, max_depth, 1.0)
     print_eval_dict(eval_densify_dict)
+
 
 def vis_rgbd_pickle_image(folder_1, folder_2):
     dirlist_1 = sorted(os.listdir(folder_1))
@@ -853,10 +951,31 @@ def vis_rgbd_pickle_image(folder_1, folder_2):
 
         datapath_2 = open(folder_2 + '/' + dirlist_2[idx], "rb")
         depth_image_dpu = np.array(Image.open(datapath_2))[480:, :, :]
-        image_show = np.hstack((rgb, depth_image_gt, depth_image_dpu, depth_image_tpu))
+        image_show = np.hstack(
+            (rgb, depth_image_gt, depth_image_dpu, depth_image_tpu))
 
         img = Image.fromarray(image_show)
-        img.save('/home/nod/datasets/nyudepthV2/rgbd_tpu_dpu/' + dirlist_2[idx])
+        img.save('/home/nod/datasets/nyudepthV2/rgbd_tpu_dpu/' +
+                 dirlist_2[idx])
+
+
+def convert_16bit_rgb(folder_1, folder_2):
+    dirlist_1 = sorted(os.listdir(folder_1))
+    for idx in range(len(dirlist_1)):
+        datapath_1 = folder_1 + '/' + dirlist_1[idx]
+        image_1 = plt.imread(datapath_1)
+        plt.imsave(folder_2 + '/' + dirlist_1[idx], image_1)
+        print(idx)
+
+
+def resize_folder(folder):
+    dirlist = sorted(os.listdir(folder))
+    for idx in range(len(dirlist)):
+        datapath = folder + '/' + dirlist[idx]
+        Image.open(datapath).resize((896, 896)).save(
+            '/home/jiatian/project/Zooming-Slow-Mo-CVPR-2020/tmp' + '/' + dirlist[idx])
+        print(idx)
+
 
 if __name__ == "__main__":
     # resave_imu_data()
@@ -900,4 +1019,7 @@ if __name__ == "__main__":
     # process_dso('/home/nod/project/dso/build/sample/000068.pkl')
     # eval_densify('/home/nod/project/dso/build/sample/00068_densify.pkl')
     # convert_rgb_folder('/home/jiatian/dataset/tum')
-    vis_rgbd_pickle_image("/home/nod/datasets/nyudepthV2/rgbd_gt_tpu_nopp_data", "/home/nod/project/vitis-ai/mpsoc/vitis-ai-tool-example/tf_eval_script/eval_res")
+    #vis_rgbd_pickle_image("/home/nod/datasets/nyudepthV2/rgbd_gt_tpu_nopp_data", "/home/nod/project/vitis-ai/mpsoc/vitis-ai-tool-example/tf_eval_script/eval_res")
+    #convert_16bit_rgb('/home/jiatian/dataset/bu_tiv/lab1-test-seq1-red/red/TIV', '/home/jiatian/dataset/bu_tiv/lab1-test-seq1-red/red/rgb')
+    resize_folder(
+        '/home/jiatian/project/Zooming-Slow-Mo-CVPR-2020/test_example/adas')

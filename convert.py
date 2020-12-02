@@ -63,12 +63,14 @@ if __name__ == "__main__":
         #                     savedModel_dir ='saved_model/tflite_test/tmp_nod_test_0217/saved_model.pb',
         #                     save_tflite=True)
     elif dataset_name == 'nod_test':
-        config_path = 'config/noddepth_nyu_eval.yml'
+        config_path = 'config/noddepth_nyu_halfvga_eval.yml'
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.save_pb(ckpt_dir='saved_model/ckpt_640_480_supervise/model-757204',
-                    pb_path='saved_model/ckpt_640_480_supervise/saved_model.pb')
+        # app.save_pb(ckpt_dir='saved_model/ckpt_640_480_supervise/model-757204',
+        #             pb_path='saved_model/ckpt_640_480_supervise/saved_model.pb')
+        app.save_pb(ckpt_dir='saved_model/ckpt_nod/0213_640_480/model-756002',
+                    pb_path='saved_model/ckpt_nod/0213_640_480/saved_model_320_240.pb')
         # app.save_pb(ckpt_dir='saved_model/ckpt_640_480_finetune/0615/model-758188',
         #             pb_path='saved_model/ckpt_640_480_finetune/0615/saved_model.pb')
         # app.save_savedModel(ckpt_dir='saved_model/ckpt_640_480/model-756002',
