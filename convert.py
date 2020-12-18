@@ -2,7 +2,7 @@ from conversion.convert import SaveModel
 import yaml
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 if __name__ == "__main__":
     dataset_name = 'nod_test'
@@ -13,7 +13,7 @@ if __name__ == "__main__":
             config = yaml.load(f)
         app = SaveModel(config=config)
         app.save_savedModel(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model_nyu/0210_maxdepth10_2/model-252578',
-                            savedModel_dir ='tmp_depth_maxdepth10/',
+                            savedModel_dir='tmp_depth_maxdepth10/',
                             save_tflite=True)
         # app.save_pb(ckpt_dir='saved_model/tello_0121/model-124266',
         #             pb_path ='saved_model/tello_0121/model-124266.pb')
@@ -58,19 +58,23 @@ if __name__ == "__main__":
             config = yaml.load(f)
         app = SaveModel(config=config)
         app.save_pb(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model_nyu/0210_maxdepth10_2/model-4798946',
-                    pb_path ='saved_model/tflite_test/tmp_nod_test_0217/saved_model.pb')
+                    pb_path='saved_model/tflite_test/tmp_nod_test_0217/saved_model.pb')
         # app.save_savedModel(ckpt_dir='/home/jiatian/project/tf-monodepth2/saved_model_nyu/0210_maxdepth10_2/backup/model-505154',
         #                     savedModel_dir ='saved_model/tflite_test/tmp_nod_test_0217/saved_model.pb',
         #                     save_tflite=True)
     elif dataset_name == 'nod_test':
-        config_path = 'config/noddepth_nyu_halfvga_eval.yml'
+        # config_path = 'config/noddepth_nyu_halfvga_eval.yml'
+        config_path = 'config/noddepth_nyu_eval.yml'
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
         # app.save_pb(ckpt_dir='saved_model/ckpt_640_480_supervise/model-757204',
         #             pb_path='saved_model/ckpt_640_480_supervise/saved_model.pb')
-        app.save_pb(ckpt_dir='saved_model/ckpt_nod/0213_640_480/model-756002',
-                    pb_path='saved_model/ckpt_nod/0213_640_480/saved_model_320_240.pb')
+        # app.save_pb(ckpt_dir='saved_model/ckpt_nod/0213_640_480/model-756002',
+        #             pb_path='saved_model/ckpt_nod/0213_640_480/saved_model_320_240.pb')
+        app.save_init_savedModel(ckpt_dir='saved_model/ckpt_nod/0213_640_480/model-756002',
+                                 savedModel_dir='saved_model/tflite_nod/tflite_640_480_init',
+                                 save_tflite=True)
         # app.save_pb(ckpt_dir='saved_model/ckpt_640_480_finetune/0615/model-758188',
         #             pb_path='saved_model/ckpt_640_480_finetune/0615/saved_model.pb')
         # app.save_savedModel(ckpt_dir='saved_model/ckpt_640_480/model-756002',
@@ -100,7 +104,7 @@ if __name__ == "__main__":
         # for dir in sorted(os.listdir(root_dir)):
         #     if 'drive' in dir and dir == drive_list[2]:
         #         dir_path = root_dir + '/' + dir
-        #         output_path = output_dir + '/' + dir 
+        #         output_path = output_dir + '/' + dir
         #         app.test_dir_depth_pose(input_dir=dir_path,
         #                                 output_dir=output_path)
         # dir_path = '/home/nod/project/TrianFlow/data/demo'
@@ -122,7 +126,8 @@ if __name__ == "__main__":
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
-        app.build_default_depth_model(ckpt_dir='saved_model/ckpt_640_480/model-756002')
+        app.build_default_depth_model(
+            ckpt_dir='saved_model/ckpt_640_480/model-756002')
 
         dir_path = '/home/nod/datasets/nod/RB3/RB3_Demo_Record_15/nodvi/device/data/images0_undistorted'
         output_path = '/home/nod/datasets/nod/RB3/RB3_Demo_Record_15/nodvi/device/data/images0_depth'
@@ -133,18 +138,18 @@ if __name__ == "__main__":
             config = yaml.load(f)
         app = SaveModel(config=config)
         app.save_xilinx_pb_postprocess(ckpt_dir='saved_model/xilinx_640_480/model-756002',
-                                       pb_path ='saved_model/xilinx_640_480/saved_model.pb')
+                                       pb_path='saved_model/xilinx_640_480/saved_model.pb')
     elif dataset_name == 'xilinx_nosigmoid':
         config_path = 'config/noddepth_xilinx_halfvga.yml'
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
         app.save_xilinx_pb_postprocess_nosigmoid(ckpt_dir='saved_model/xilinx_640_480/model-2268002',
-                                                 pb_path ='saved_model/xilinx_640_480/saved_model_nosigmoid.pb')
+                                                 pb_path='saved_model/xilinx_640_480/saved_model_nosigmoid.pb')
     elif dataset_name == 'xilinx':
         config_path = 'config/noddepth_xilinx_vga.yml'
         with open(config_path, 'r') as f:
             config = yaml.load(f)
         app = SaveModel(config=config)
         app.save_xilinx_pb(ckpt_dir='saved_model/xilinx_640_480_nod/model-1255828',
-                           pb_path ='saved_model/xilinx_640_480_nod/saved_model.pb')
+                           pb_path='saved_model/xilinx_640_480_nod/saved_model.pb')

@@ -56,6 +56,13 @@ class SaveModel(object):
         save_tflite_path = savedModel_dir + '/saved_model_quant.tflite'
         open(save_tflite_path, "wb").write(tflite_quant_model)
 
+    def convert_savedModel_quant_float_tflite(self, savedModel_dir):
+        converter = tf.lite.TFLiteConverter.from_saved_model(savedModel_dir)
+        converter.experimental_new_converter = True
+        tflite_quant_model = converter.convert()
+        save_tflite_path = savedModel_dir + '/saved_model_quant.tflite'
+        open(save_tflite_path, "wb").write(tflite_quant_model)
+
     def build_orig_depth(self):
         from model.net import Net
 
@@ -77,10 +84,10 @@ class SaveModel(object):
     def build_new_depth(self):
         from model_new.net import Net
 
-        self.tgt_image_uint8 = tf.placeholder(tf.uint8, [1, self.img_height, self.img_width, 3], name='input')
+        self.tgt_image_uint8 = tf.placeholder(tf.uint8, [1, self.img_height, self.img_width, 3], name='input_uint8')
         with tf.name_scope('data_loading'):
             tgt_image_float = tf.image.convert_image_dtype(self.tgt_image_uint8, dtype=tf.float32)
-        self.tgt_image_float = tf.identity(tgt_image_float, name='input_float')
+        self.tgt_image_float = tf.identity(tgt_image_float, name='input')
         tgt_image_net = self.preprocess_image(self.tgt_image_float)
 
         # self.tgt_image_float = tf.placeholder(tf.float32, [None, self.img_height, self.img_width, 3], name='input')
@@ -88,7 +95,7 @@ class SaveModel(object):
             net_builder = Net(False, **self.config)
 
             res18_tc, skips_tc = net_builder.build_resnet18(tgt_image_net)
-            pred_disp = net_builder.build_disp_net(res18_tc, skips_tc)[0]
+            pred_disp = net_builder.build_disp_net_bilinear(res18_tc, skips_tc)[0]
 
         self.pred_disp = tf.identity(pred_disp, name='output')
 
@@ -231,6 +238,40 @@ class SaveModel(object):
         input_image_uint8 = np.random.randint(256, size=(1, self.img_height, self.img_width, 3), dtype=np.uint8)
         with tf.Session() as sess:
             self.saver.restore(sess, ckpt_dir)
+            feed_dict = {self.tgt_image_float: input_image}
+            result = sess.run(self.pred_disp, feed_dict=feed_dict)
+
+            tf.saved_model.simple_save(
+                sess,
+                savedModel_dir,
+                inputs={'input': self.tgt_image_float},
+                outputs={'output': self.pred_disp} )
+
+        if save_tflite:
+            self.convert_savedModel_quant_tflite(savedModel_dir)
+
+    def save_init_savedModel(self, ckpt_dir, savedModel_dir, save_tflite=False):
+        if save_tflite and len(os.listdir(savedModel_dir) ) != 0:
+            self.convert_savedModel_quant_tflite(savedModel_dir)
+            return
+
+        tf.reset_default_graph()
+        self.build_new_depth()
+
+        var_list = [var for var in tf.global_variables() if "moving" in var.name]
+        var_list += tf.trainable_variables()
+        # self.saver = tf.train.Saver(var_list, max_to_keep=10)
+
+        for var in tf.model_variables():
+            print(var)
+
+        init = tf.initialize_all_variables()
+
+        input_image = np.random.random_sample(size=(1, self.img_height, self.img_width, 3))
+        input_image_uint8 = np.random.randint(256, size=(1, self.img_height, self.img_width, 3), dtype=np.uint8)
+        with tf.Session() as sess:
+            # self.saver.restore(sess, ckpt_dir)
+            sess.run(init)
             feed_dict = {self.tgt_image_float: input_image}
             result = sess.run(self.pred_disp, feed_dict=feed_dict)
 
